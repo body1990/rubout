@@ -1,0 +1,18 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
+[32m2026-10-13 10:34:51.596[0m | [1mINFO    [0m | [36m__main__[0m:[36mmain[0m:[36m798[0m - [1mFlorence-2 Model loaded[0m
+[32m2026-10-13 10:34:51.596[0m | [1mINFO    [0m | [36m__main__[0m:[36mload_lama_model[0m:[36m37[0m - [1mLoading LaMA (verifying cached weights or downloading if missing)[0m
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+[32m2026-10-13 10:34:53.200[0m | [1mINFO    [0m | [36m__main__[0m:[36mmain[0m:[36m802[0m - [1mLaMa model loaded[0m
+Using device: cpu
+Processing files:   0%|          | 0/8 [00:00<?, ?it/s]The following generation flags are not valid and may be ignored: ['early_stopping']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+Processing files:  12%|█▎        | 1/8 [00:13<01:31, 13.12s/it]Processing files:  25%|██▌       | 2/8 [00:26<01:19, 13.18s/it]Processing files:  38%|███▊      | 3/8 [00:39<01:05, 13.08s/it]Processing files:  50%|█████     | 4/8 [00:52<00:52, 13.17s/it]Processing files:  62%|██████▎   | 5/8 [01:05<00:39, 13.11s/it]Processing files:  75%|███████▌  | 6/8 [01:18<00:25, 12.94s/it]Processing files:  88%|████████▊ | 7/8 [01:31<00:12, 12.96s/it]Processing files: 100%|██████████| 8/8 [01:44<00:00, 13.09s/it]Processing files: 100%|██████████| 8/8 [01:44<00:00, 13.08s/it]
+input_path:/tmp/in/rocket_cornerwhite.jpg, output_path:/tmp/out/rocket_cornerwhite.png, overall_progress:12%
+input_path:/tmp/in/astronaut_darktile.jpg, output_path:/tmp/out/astronaut_darktile.png, overall_progress:24%
+input_path:/tmp/in/_clean_astronaut.jpg, output_path:/tmp/out/_clean_astronaut.png, overall_progress:37%
+input_path:/tmp/in/chelsea_logo.jpg, output_path:/tmp/out/chelsea_logo.png, overall_progress:49%
+input_path:/tmp/in/astronaut_whitetile.jpg, output_path:/tmp/out/astronaut_whitetile.png, overall_progress:62%
+input_path:/tmp/in/camera_datestamp.jpg, output_path:/tmp/out/camera_datestamp.png, overall_progress:74%
+input_path:/tmp/in/astronaut_logo.jpg, output_path:/tmp/out/astronaut_logo.png, overall_progress:87%
+input_path:/tmp/in/coffee_whitetile.jpg, output_path:/tmp/out/coffee_whitetile.png, overall_progress:99%
