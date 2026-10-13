@@ -22,6 +22,7 @@ jobs:
         continue-on-error: true
         run: |
           python ci/nb_smoke.py
+          ln -sfn $GITHUB_WORKSPACE $GITHUB_WORKSPACE/rubout
           cd $GITHUB_WORKSPACE && python /tmp/nb_run.py 2>&1 | tail -60 | tee /tmp/nbsmoke.log
           ls -la detector.* | tee -a /tmp/nbsmoke.log
       - name: Commit log
