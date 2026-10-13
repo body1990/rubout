@@ -953,7 +953,7 @@ function makeNet() {
       }
     }
     function detect(d) {
-      var aw = d.aw, ah = d.ah, prob = net.run(new Uint8Array(d.rgb), aw, ah, function (f) { post({ t: 'p', v: f }); });
+      var aw = d.aw, ah = d.ah, prob = d.prob ? new Float32Array(d.prob) : net.run(new Uint8Array(d.rgb), aw, ah, function (f) { post({ t: 'p', v: f }); });
       var bin = new Uint8Array(aw * ah), i, cnt = 0;
       for (i = 0; i < bin.length; i++) bin[i] = prob[i] > d.thr ? 1 : 0;
       removeSmall(bin, aw, ah, Math.max(6, Math.round(aw * ah * 2e-5)));
@@ -1073,6 +1073,37 @@ function makeNet() {
       });
     }).then(null, function (e) { miganDead = true; try { console.warn('AI fill unavailable', e); } catch (_) {} return null; });
   }
+
+  /* ---------- optional bigger detector (model/detector.onnx, trained on a GPU); falls back to the built-in net ---------- */
+  var detector = null, detDead = false;
+  function ensureDetector() {
+    if (detDead) return Promise.resolve(null);
+    if (detector) return detector;
+    detector = (async function () {
+      if (!window.ort) return null;
+      var r = await fetch('model/detector.json'); if (!r.ok) return null;
+      var cfg = await r.json(), rb = await fetch('model/detector.onnx'); if (!rb.ok) return null;
+      ort.env.wasm.wasmPaths = 'vendor/ort/'; ort.env.wasm.numThreads = 1;
+      var sess = await ort.InferenceSession.create(await rb.arrayBuffer(), { executionProviders: ['wasm'] });
+      if (cfg.thr && cfg.thr.length === 3) THR = cfg.thr;
+      return { s: sess, name: sess.inputNames[0], mult: cfg.multiple || 16 };
+    })();
+    detector.then(function (d) { if (!d) detDead = true; }, function () { detDead = true; });
+    return detector.then(null, function () { return null; });
+  }
+  function detectProb(a) {
+    return ensureDetector().then(function (d) {
+      if (!d) return null;
+      var m = d.mult, aw = a.aw, ah = a.ah, W2 = Math.ceil(aw / m) * m, H2 = Math.ceil(ah / m) * m, n = W2 * H2, x = new Uint8Array(3 * n), y, xx, c;
+      for (y = 0; y < H2; y++) { var sy = Math.min(ah - 1, y); for (xx = 0; xx < W2; xx++) { var sx = Math.min(aw - 1, xx), o = (sy * aw + sx) * 3; for (c = 0; c < 3; c++) x[c * n + y * W2 + xx] = a.rgb[o + c]; } }
+      var feeds = {}; feeds[d.name] = new ort.Tensor('uint8', x, [1, 3, H2, W2]);
+      return d.s.run(feeds).then(function (r) {
+        var o = r[d.s.outputNames[0]].data, p = new Float32Array(aw * ah);
+        for (y = 0; y < ah; y++) for (xx = 0; xx < aw; xx++) p[y * aw + xx] = o[y * W2 + xx];
+        return p;
+      });
+    }).then(null, function (e) { detDead = true; try { console.warn('detector.onnx failed', e); } catch (_) {} return null; });
+  }
   var usedAI = false;
   function fillSelection(base, span) {
     var bb = maskBBox(); if (!bb) return Promise.resolve(false);
@@ -1118,7 +1149,11 @@ function makeNet() {
     var found = false;
     ensureModel().then(function () {
       var a = analysisPixels(512);
-      return send({ t: 'detect', rgb: a.rgb.buffer, aw: a.aw, ah: a.ah, W: W, H: H, thr: THR[sens] }, [a.rgb.buffer], function (p) { setProgress(p * 0.3); });
+      return detectProb(a).then(function (prob) {
+        var msg = { t: 'detect', aw: a.aw, ah: a.ah, W: W, H: H, thr: THR[sens] }, tr;
+        if (prob) { msg.prob = prob.buffer; tr = [msg.prob]; } else { msg.rgb = a.rgb.buffer; tr = [msg.rgb]; }
+        return send(msg, tr, function (p) { setProgress(p * 0.3); });
+      });
     }).then(function (m) {
       var det = new Uint8Array(m.mask);
       if (m.coverage < 0.0004) { setBusy(false); setChip('No watermark found. Try <b>Strong</b>, or switch to Manual and paint over it.'); return; }
