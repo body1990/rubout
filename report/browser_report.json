@@ -1,0 +1,8 @@
+{
+ "ok": true,
+ "log": [
+  "session ok 854ms",
+  "run ok 2045ms size 512x512"
+ ],
+ "console": []
+}
