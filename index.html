@@ -182,6 +182,8 @@
   </div>
 </div>
 
+<script src="vendor/ort/ort.wasm.min.js"></script>
+<script src="migan.js"></script>
 <script>
 /* Rubout inpainting core: multi-scale PatchMatch fill (Wexler-style EM).
    Self-contained so it can be stringified into a Web Worker. */
@@ -1043,6 +1045,35 @@ function makeNet() {
     return { rgb: rgb, aw: aw, ah: ah };
   }
 
+
+  /* ---------- AI fill (MI-GAN via onnxruntime-web); falls back to the built-in fill if anything fails ---------- */
+  var migan = null, miganDead = false;
+  function ensureMigan() {
+    if (migan) return migan;
+    migan = (async function () {
+      if (!window.ort || !window.miganRun) throw new Error('no ort');
+      ort.env.wasm.wasmPaths = 'vendor/ort/'; ort.env.wasm.numThreads = 1;
+      var io = await (await fetch('model/migan_io.json')).json();
+      var buf = await (await fetch('model/migan_pipeline_v2.onnx')).arrayBuffer();
+      var s = await ort.InferenceSession.create(buf, { executionProviders: ['wasm'] });
+      return { io: io, s: s };
+    })();
+    migan.catch(function () { miganDead = true; });
+    return migan;
+  }
+  function miganFill(rgba, cm, cw, ch, grow) {
+    if (miganDead) return Promise.resolve(null);
+    return ensureMigan().then(function (m) {
+      var hole = coreMain.dilate(cm, cw, ch, grow + Math.max(1, Math.round(Math.max(cw, ch) / 400)));
+      return miganRun(ort, m.s, m.io, rgba, hole, cw, ch).then(function (r) {
+        if (r.w !== cw || r.h !== ch) throw new Error('size');
+        var out = new Uint8ClampedArray(rgba), n = cw * ch;
+        for (var i = 0; i < n; i++) if (hole[i]) { out[i * 4] = r.rgba[i * 4]; out[i * 4 + 1] = r.rgba[i * 4 + 1]; out[i * 4 + 2] = r.rgba[i * 4 + 2]; }
+        return out;
+      });
+    }).then(null, function (e) { miganDead = true; try { console.warn('AI fill unavailable', e); } catch (_) {} return null; });
+  }
+  var usedAI = false;
   function fillSelection(base, span) {
     var bb = maskBBox(); if (!bb) return Promise.resolve(false);
     var grow = clamp(Math.round(Math.max(W, H) / 900), 1, 4), bw = bb.x1 - bb.x0 + 1, bh = bb.y1 - bb.y0 + 1;
@@ -1055,8 +1086,15 @@ function makeNet() {
     var bx = Math.max(0, bb.x0 - grow - 2), by = Math.max(0, bb.y0 - grow - 2), bx1 = Math.min(W, bb.x1 + 1 + grow + 2), by1 = Math.min(H, bb.y1 + 1 + grow + 2);
     var before = pctx.getImageData(bx, by, bx1 - bx, by1 - by), img = pctx.getImageData(cx, cy, cw, ch), cm = new Uint8Array(cw * ch);
     for (var y = 0; y < ch; y++) cm.set(mask.subarray((cy + y) * W + cx, (cy + y) * W + cx + cw), y * cw);
-    var msg = { t: 'fill', rgba: img.data.buffer, mask: cm.buffer, w: cw, h: ch, opts: { grow: grow, patchRadius: 3, seed: 7 } };
-    return send(msg, [msg.rgba, msg.mask], function (p) { setProgress(base + span * p); }).then(function (m) {
+    if (!miganDead && !migan) setChip('Loading the AI fill model (28 MB, first time only)…');
+    setProgress(base + span * 0.2);
+    return miganFill(img.data, cm, cw, ch, grow).then(function (ai) {
+      usedAI = !!ai;
+      if (ai) return { rgba: ai.buffer };
+      setChip('Filling…');
+      var msg = { t: 'fill', rgba: img.data.buffer, mask: cm.buffer, w: cw, h: ch, opts: { grow: grow, patchRadius: 3, seed: 7 } };
+      return send(msg, [msg.rgba, msg.mask], function (p) { setProgress(base + span * p); });
+    }).then(function (m) {
       pctx.putImageData(new ImageData(new Uint8ClampedArray(m.rgba), cw, ch), cx, cy);
       undoStack.push({ x: bx, y: by, data: before }); if (undoStack.length > 6) undoStack.shift();
       clearMask(); editsChanged(); return true;
@@ -1089,7 +1127,7 @@ function makeNet() {
       redrawOverlay(); found = true;
       setChip('Found <b>' + (m.coverage * 100).toFixed(m.coverage < 0.1 ? 1 : 0) + '%</b> of the photo. Filling it in…');
       return fillSelection(0.3, 0.7).then(function () {
-        setBusy(false); setChip('Done. Zoom in to check, then Save. Tap <b>Undo</b> if it missed or removed too much.');
+        setBusy(false); setChip((usedAI ? 'Done (AI fill). ' : 'Done. ') + 'Zoom in to check, then Save. Tap <b>Undo</b> if it missed or removed too much.');
       });
     }).then(null, function (err) { if (found) clearMask(); failed(err); });
   }

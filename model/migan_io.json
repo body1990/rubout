@@ -1,0 +1,41 @@
+{
+ "inputs": [
+  {
+   "name": "image",
+   "shape": [
+    "batch_size",
+    3,
+    "height",
+    "width"
+   ],
+   "type": "tensor(uint8)"
+  },
+  {
+   "name": "mask",
+   "shape": [
+    "batch_size",
+    1,
+    "height",
+    "width"
+   ],
+   "type": "tensor(uint8)"
+  }
+ ],
+ "outputs": [
+  {
+   "name": "result",
+   "shape": [
+    "ScatterNDresult_dim_0",
+    3,
+    "ScatterNDresult_dim_2",
+    "ScatterNDresult_dim_3"
+   ],
+   "type": "tensor(uint8)"
+  }
+ ],
+ "img_layout": "nchw",
+ "mask_layout": "nchw",
+ "out_layout": "nchw",
+ "img_input": "image",
+ "mask_input": "mask"
+}
