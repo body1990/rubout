@@ -1,0 +1,43 @@
+name: Fetch AI fill model and verify
+on:
+  workflow_dispatch: {}
+  push:
+    paths: ['.github/workflows/migan.yml', 'ci/**']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Download MI-GAN pipeline (ONNX) and onnxruntime-web
+        run: |
+          mkdir -p model vendor/ort report
+          curl -L --fail --retry 3 -o model/migan_pipeline_v2.onnx https://huggingface.co/andraniksargsyan/migan/resolve/main/migan_pipeline_v2.onnx
+          ls -la model
+          npm pack onnxruntime-web@1.17.1
+          tar xzf onnxruntime-web-1.17.1.tgz
+          ls package/dist | head -50
+          cp package/dist/ort.wasm.min.js package/dist/ort-wasm-simd.wasm package/dist/ort-wasm.wasm vendor/ort/
+          rm -rf package onnxruntime-web-1.17.1.tgz
+      - name: Probe model with Python onnxruntime
+        run: |
+          pip install onnxruntime numpy pillow scikit-image
+          python ci/probe.py
+      - name: Test in headless Chromium (same wasm path as iPhone Safari)
+        run: |
+          npm i --no-save playwright
+          npx playwright install --with-deps chromium
+          node ci/browser_test.js
+      - name: Commit results
+        if: always()
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A model vendor report
+          git commit -m "ci: model, runtime and test report [skip ci]" || echo nothing
+          git pull --rebase origin main || true
+          git push origin HEAD:main

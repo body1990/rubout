@@ -1,0 +1,21 @@
+<!doctype html><meta charset="utf-8"><body>
+<script src="/vendor/ort/ort.wasm.min.js"></script>
+<script src="/migan.js"></script>
+<script>
+async function load(url){const r=await fetch(url);const b=await createImageBitmap(await r.blob());const c=document.createElement('canvas');c.width=b.width;c.height=b.height;const x=c.getContext('2d');x.drawImage(b,0,0);return x.getImageData(0,0,b.width,b.height);}
+window.runTest=async function(){
+  const log=[];const t0=performance.now();
+  ort.env.wasm.wasmPaths='/vendor/ort/';ort.env.wasm.numThreads=1;
+  const io=await (await fetch('/report/migan_io.json')).json();
+  const buf=await (await fetch('/model/migan_pipeline_v2.onnx')).arrayBuffer();
+  const s=await ort.InferenceSession.create(buf,{executionProviders:['wasm'],graphOptimizationLevel:'all'});
+  log.push('session ok '+Math.round(performance.now()-t0)+'ms');
+  const im=await load('/report/test_in.png'),mk=await load('/report/test_mask.png');
+  const hole=new Uint8Array(im.width*im.height);for(let i=0;i<hole.length;i++)hole[i]=mk.data[i*4]<128?1:0;
+  const t1=performance.now();
+  const r=await miganRun(ort,s,io,im.data,hole,im.width,im.height);
+  log.push('run ok '+Math.round(performance.now()-t1)+'ms size '+r.w+'x'+r.h);
+  const c=document.createElement('canvas');c.width=r.w;c.height=r.h;c.getContext('2d').putImageData(new ImageData(r.rgba,r.w,r.h),0,0);
+  return {log,png:c.toDataURL('image/png')};
+};
+</script>
