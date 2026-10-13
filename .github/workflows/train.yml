@@ -1,0 +1,46 @@
+name: Train watermark detector (people photos)
+on:
+  workflow_dispatch:
+    inputs:
+      minutes: { description: 'training minutes', default: '150' }
+  push:
+    paths: ['.github/workflows/train.yml']
+permissions:
+  contents: write
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Fonts and Python packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fontconfig fonts-dejavu fonts-liberation fonts-freefont-ttf fonts-roboto fonts-open-sans fonts-lato fonts-ubuntu fonts-hack fonts-inconsolata fonts-crosextra-carlito fonts-droid-fallback || true
+          pip install -q "jax[cpu]" numpy pillow scikit-learn scikit-image
+      - name: Collect people photos
+        run: python ci/train/prep_people.py
+      - name: Generate training data
+        run: |
+          export PHOTOS=ci/photos/ EXTRA=/tmp/people NPROC=4
+          python ci/train/datagen.py /tmp/train_data.npz 40000 160 1000
+          python ci/train/datagen.py /tmp/val_data.npz 1000 160 777777
+      - name: Train
+        run: |
+          git config user.name "github-actions"; git config user.email "actions@users.noreply.github.com"
+          cp ci/train/init.pkl /tmp/init.pkl
+          mkdir -p report
+          ( while true; do sleep 1200; cp /tmp/train.log report/train.log; git add report/train.log; git commit -qm "train log [skip ci]" || true; git pull -q --rebase origin main || true; git push -q origin HEAD:main || true; done ) &
+          python ci/train/train.py "${{ github.event.inputs.minutes || '150' }}" /tmp/m3 24 2>&1 | tee /tmp/train.log
+      - name: Commit weights
+        if: always()
+        run: |
+          mkdir -p model2 report
+          cp /tmp/m3_export/model.json /tmp/m3_export/weights.bin model2/ || true
+          cp /tmp/train.log report/train.log || true
+          git add model2 report
+          git commit -m "ci: trained detector v2 [skip ci]" || echo nothing
+          git pull --rebase origin main || true
+          git push origin HEAD:main

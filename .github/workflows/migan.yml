@@ -2,7 +2,7 @@ name: Fetch AI fill model and verify
 on:
   workflow_dispatch: {}
   push:
-    paths: ['.github/workflows/migan.yml', 'ci/**']
+    paths: ['.github/workflows/migan.yml', 'ci/probe.py', 'ci/test.html', 'ci/browser_test.js']
 permissions:
   contents: write
 jobs:
