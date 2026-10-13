@@ -21,6 +21,7 @@ jobs:
           sudo apt-get install -y -qq fontconfig fonts-dejavu fonts-liberation fonts-freefont-ttf fonts-roboto fonts-open-sans fonts-lato fonts-ubuntu fonts-hack fonts-inconsolata fonts-crosextra-carlito fonts-droid-fallback || true
           pip install -q "jax[cpu]" numpy pillow scikit-learn scikit-image
       - name: Collect people photos
+        timeout-minutes: 25
         run: python ci/train/prep_people.py
       - name: Generate training data
         run: |
