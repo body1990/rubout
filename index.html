@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Rubout</title>
+<meta name="description" content="Find and remove watermarks, date stamps and stray marks from photos, on your phone.">
+<meta name="theme-color" content="#17161a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rubout">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<style>
+  @font-face { font-family: 'Bricolage Grotesque'; font-weight: 700; font-display: swap; src: url(fonts/bricolage-grotesque-latin-700-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Bricolage Grotesque'; font-weight: 800; font-display: swap; src: url(fonts/bricolage-grotesque-latin-800-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Instrument Sans'; font-weight: 400; font-display: swap; src: url(fonts/instrument-sans-latin-400-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Instrument Sans'; font-weight: 500; font-display: swap; src: url(fonts/instrument-sans-latin-500-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Instrument Sans'; font-weight: 600; font-display: swap; src: url(fonts/instrument-sans-latin-600-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'IBM Plex Mono'; font-weight: 400; font-display: swap; src: url(fonts/ibm-plex-mono-latin-400-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'IBM Plex Mono'; font-weight: 500; font-display: swap; src: url(fonts/ibm-plex-mono-latin-500-normal.woff2) format('woff2'); }
+
+  /* Layout: one-screen photo bench. Header, a zoomable light table that takes all spare height, a tool dock pinned below.
+     Single dark look on purpose: a neutral surround lets the photo's own colour read true. */
+  :root {
+    --bg: #17161a; --surface: #211f26; --surface-2: #2b2832; --line: #3b3745; --fg: #efebf2; --muted: #a8a2b0;
+    --accent: #ff8fae; --accent-ink: #2b0c18; --mask: #ff4f86;
+    --display: 'Bricolage Grotesque', 'Avenir Next', system-ui, -apple-system, sans-serif;
+    --body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; overscroll-behavior: none; }
+  html { box-sizing: border-box; background: var(--bg); padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  *, *::before, *::after { box-sizing: inherit; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.35; overflow: hidden; -webkit-text-size-adjust: 100%; }
+  .app { height: 100%; display: flex; flex-direction: column; gap: 10px; padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); padding-block: 10px 12px; max-width: 760px; margin-inline: auto; }
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { font-family: var(--display); font-weight: 800; font-size: 26px; letter-spacing: -0.02em; line-height: 1; }
+  .brand i { font-style: normal; color: var(--accent); }
+  button, .btn { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+  .btn, .tool, .act, .pill, .seg button, .tabs button {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--surface); cursor: pointer; font-weight: 600; font-size: 15px; user-select: none; -webkit-user-select: none;
+  }
+  .btn:focus-visible, .tool:focus-visible, .act:focus-visible, .pill:focus-visible, .seg button:focus-visible, .tabs button:focus-visible, input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .install { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
+  .install span { flex: 1 1 auto; min-width: 0; }
+  .install b { color: var(--fg); font-weight: 600; }
+  .install button { flex: 0 0 auto; min-height: 36px; padding: 0 12px; font-size: 13px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-2); }
+
+  .stage { position: relative; flex: 1 1 auto; min-height: 200px; border-radius: 16px; overflow: hidden; background: var(--surface); border: 1px solid var(--line);
+    touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .board { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+  .board canvas { position: absolute; left: 0; top: 0; display: block; }
+  #ov { opacity: 0.55; pointer-events: none; }
+  .chip { position: absolute; left: 10px; right: 10px; bottom: 10px; padding: 8px 12px; border-radius: 10px; background: rgba(23, 22, 26, 0.88); border: 1px solid var(--line); font-size: 13.5px; pointer-events: none; text-wrap: pretty; }
+  .chip b { color: var(--accent); font-weight: 600; }
+  .fit { position: absolute; right: 10px; top: 10px; min-height: 36px; padding: 0 12px; border-radius: 10px; font-size: 13px; background: rgba(23, 22, 26, 0.88); border: 1px solid var(--line); color: var(--fg); cursor: pointer; }
+  .ring { position: absolute; border-radius: 50%; pointer-events: none; border: 2px solid #fff; transform: translate(-50%, -50%); box-shadow: 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.55); opacity: 0; }
+
+  .dock { display: grid; gap: 10px; }
+  .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .tabs button { min-height: 40px; color: var(--muted); }
+  .tabs button[aria-selected="true"] { background: var(--surface-2); border-color: var(--accent); color: var(--fg); }
+  .sens { display: grid; gap: 8px; }
+  .sens .row { display: flex; align-items: center; gap: 12px; }
+  .lbl { flex: 0 0 auto; min-width: 5.6em; color: var(--muted); font-size: 14px; }
+  .seg { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .seg button { min-height: 40px; padding: 0 6px; font-size: 14px; color: var(--muted); }
+  .seg button[aria-checked="true"] { background: var(--surface-2); border-color: var(--accent); color: var(--fg); }
+  .hint { margin: 0; color: var(--muted); font-size: 13px; text-wrap: pretty; }
+  .tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .tool { flex-direction: column; gap: 3px; min-height: 54px; padding: 6px 4px; font-size: 13px; color: var(--muted); }
+  .tool svg { width: 22px; height: 22px; }
+  .tool[aria-checked="true"] { background: var(--surface-2); border-color: var(--accent); color: var(--fg); }
+  .tool[aria-checked="true"] svg { color: var(--accent); }
+  .slider { display: flex; align-items: center; gap: 12px; min-height: 44px; margin-top: 10px; }
+  .slider label { flex: 0 0 auto; min-width: 5.6em; color: var(--muted); font-size: 14px; }
+  .slider input[type=range] { flex: 1 1 auto; min-width: 0; height: 32px; accent-color: var(--accent); }
+  .slider output { flex: 0 0 auto; min-width: 3.2em; text-align: right; font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .pill { min-height: 36px; padding: 0 12px; font-size: 13px; border-radius: 999px; color: var(--muted); }
+  .pill[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+
+  .acts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.9fr); gap: 8px; }
+  .act { padding: 0 8px; }
+  .act:disabled { opacity: 0.4; cursor: default; }
+  .act.primary { position: relative; overflow: hidden; background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+  .act.primary::before { content: ""; position: absolute; inset: 0 auto 0 0; width: calc(var(--p, 0) * 1%); background: rgba(43, 12, 24, 0.22); transition: width .15s linear; }
+  .act.primary span { position: relative; }
+  .act.primary:disabled { background: var(--surface-2); border-color: var(--line); color: var(--muted); opacity: 1; }
+  .foot { margin: 0; color: var(--muted); font-size: 12px; text-align: center; text-wrap: balance; }
+
+  .sheet { position: fixed; inset: 0; z-index: 10; background: rgba(12, 11, 14, 0.96); display: flex; flex-direction: column; gap: 12px; padding-inline: 16px; padding-block: calc(16px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .sheet h2 { margin: 0; font-family: var(--display); font-size: 22px; letter-spacing: -0.01em; }
+  .sheet p { margin: 0; color: var(--muted); }
+  .sheet .pic { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  .sheet img { max-width: 100%; max-height: 100%; border-radius: 10px; -webkit-touch-callout: default; -webkit-user-select: auto; user-select: auto; }
+  .sheet .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (prefers-reduced-motion: reduce) { .act.primary::before { transition: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <div class="brand">Rub<i>out</i></div>
+    <label class="btn" for="file">Open photo</label>
+    <input class="sr" id="file" type="file" accept="image/*">
+  </header>
+
+  <div class="install" id="install" hidden>
+    <span>Install it: tap <b>Share</b>, then <b>Add to Home Screen</b>.</span>
+    <button id="installX" type="button">Got it</button>
+  </div>
+
+  <main class="stage" id="stage" aria-label="Photo canvas">
+    <div class="board" id="board"><canvas id="photo"></canvas><canvas id="ov"></canvas></div>
+    <button class="fit" id="fit" type="button">Fit</button>
+    <div class="ring" id="ring"></div>
+    <div class="chip" id="chip" role="status" aria-live="polite"></div>
+  </main>
+
+  <section class="dock" aria-label="Tools">
+    <div class="tabs" role="tablist" aria-label="Mode">
+      <button id="tab-auto" type="button" role="tab" aria-selected="true">Auto</button>
+      <button id="tab-manual" type="button" role="tab" aria-selected="false">Manual</button>
+    </div>
+
+    <div id="panel-auto" class="sens">
+      <div class="row">
+        <span class="lbl" id="sensLbl">Sensitivity</span>
+        <div class="seg" role="radiogroup" aria-labelledby="sensLbl">
+          <button id="s0" type="button" role="radio" aria-checked="false">Gentle</button>
+          <button id="s1" type="button" role="radio" aria-checked="true">Balanced</button>
+          <button id="s2" type="button" role="radio" aria-checked="false">Strong</button>
+        </div>
+      </div>
+      <p class="hint">Finds text, logos and stamps laid over the photo, then fills them in. Faint or tiny marks can be missed. Use Manual to finish the job.</p>
+    </div>
+
+    <div id="panel-manual" hidden>
+      <div class="tools" role="radiogroup" aria-label="Tool">
+        <button class="tool" id="t-brush" type="button" role="radio" aria-checked="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4.5l5 5L10 19H5v-5z"/><path d="M12.5 6.5l5 5"/></svg>Brush</button>
+        <button class="tool" id="t-wand" type="button" role="radio" aria-checked="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L16 8"/><path d="M16 3v3M16 10v3M13.5 8h-3M21.5 8h-3M19.5 5.5l-1.5 1.5M19.5 10.5L18 9"/></svg>Wand</button>
+        <button class="tool" id="t-desel" type="button" role="radio" aria-checked="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15l8-8 8 8-4 4H8z"/><path d="M9 10l8 8"/></svg>Deselect</button>
+      </div>
+      <div class="slider">
+        <label for="size" id="sizeLabel">Brush size</label>
+        <input id="size" type="range" min="8" max="140" value="36">
+        <output id="sizeOut" for="size">36 px</output>
+        <button class="pill" id="every" type="button" aria-pressed="false" hidden>Everywhere</button>
+      </div>
+    </div>
+
+    <div class="acts">
+      <button class="act" id="undo" type="button" disabled>Undo</button>
+      <button class="act" id="clear" type="button" disabled>Clear</button>
+      <button class="act" id="save" type="button">Save</button>
+      <button class="act primary" id="go" type="button"><span id="goText">Auto remove</span></button>
+    </div>
+    <p class="foot">Runs on this phone. Photos are never uploaded. Use it on photos you own or may edit.</p>
+  </section>
+</div>
+
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <h2 id="sheetTitle">Save to Photos</h2>
+  <p>Tap Share and choose Save Image, or touch and hold the photo and tap Add to Photos.</p>
+  <div class="pic"><img id="sheetImg" alt="Finished photo"></div>
+  <div class="row2">
+    <button class="act" id="sheetShare" type="button">Share</button>
+    <button class="act primary" id="sheetDone" type="button"><span>Done</span></button>
+  </div>
+</div>
+
+<script>
+/* Rubout inpainting core: multi-scale PatchMatch fill (Wexler-style EM).
+   Self-contained so it can be stringified into a Web Worker. */
+function makeInpaintCore() {
+  'use strict';
+
+  function makeRng(seed) {
+    var s = (seed | 0) || 123456789;
+    return function () {
+      s ^= s << 13; s ^= s >>> 17; s ^= s << 5;
+      return (s >>> 0) / 4294967296;
+    };
+  }
+
+  // Square dilation of a 0/1 mask by radius r (separable sliding window).
+  function dilate(src, w, h, r) {
+    var n = w * h, out = new Uint8Array(n), x, y, i;
+    if (r <= 0) { for (i = 0; i < n; i++) out[i] = src[i] ? 1 : 0; return out; }
+    var tmp = new Uint8Array(n), cnt, row, add, rem;
+    for (y = 0; y < h; y++) {
+      row = y * w; cnt = 0;
+      for (x = 0; x < Math.min(r, w); x++) cnt += src[row + x] ? 1 : 0;
+      for (x = 0; x < w; x++) {
+        add = x + r; if (add < w) cnt += src[row + add] ? 1 : 0;
+        rem = x - r - 1; if (rem >= 0) cnt -= src[row + rem] ? 1 : 0;
+        tmp[row + x] = cnt > 0 ? 1 : 0;
+      }
+    }
+    for (x = 0; x < w; x++) {
+      cnt = 0;
+      for (y = 0; y < Math.min(r, h); y++) cnt += tmp[y * w + x];
+      for (y = 0; y < h; y++) {
+        add = y + r; if (add < h) cnt += tmp[add * w + x];
+        rem = y - r - 1; if (rem >= 0) cnt -= tmp[rem * w + x];
+        out[y * w + x] = cnt > 0 ? 1 : 0;
+      }
+    }
+    return out;
+  }
+
+  // Approximate largest distance (px) from a hole pixel to known pixels (3-4 chamfer).
+  function holeDepth(mask, w, h) {
+    var BIG = 1e9, n = w * h, d = new Float32Array(n), i, x, y, v, known = 0;
+    for (i = 0; i < n; i++) { if (mask[i]) d[i] = BIG; else known++; }
+    if (!known) return Infinity;
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      i = y * w + x; if (d[i] === 0) continue; v = d[i];
+      if (x > 0) v = Math.min(v, d[i - 1] + 3);
+      if (y > 0) {
+        v = Math.min(v, d[i - w] + 3);
+        if (x > 0) v = Math.min(v, d[i - w - 1] + 4);
+        if (x < w - 1) v = Math.min(v, d[i - w + 1] + 4);
+      }
+      d[i] = v;
+    }
+    for (y = h - 1; y >= 0; y--) for (x = w - 1; x >= 0; x--) {
+      i = y * w + x; if (d[i] === 0) continue; v = d[i];
+      if (x < w - 1) v = Math.min(v, d[i + 1] + 3);
+      if (y < h - 1) {
+        v = Math.min(v, d[i + w] + 3);
+        if (x < w - 1) v = Math.min(v, d[i + w + 1] + 4);
+        if (x > 0) v = Math.min(v, d[i + w - 1] + 4);
+      }
+      d[i] = v;
+    }
+    var m = 0;
+    for (i = 0; i < n; i++) if (mask[i] && d[i] < BIG && d[i] > m) m = d[i];
+    return m / 3;
+  }
+
+  function downsample(img, mask, w, h) {
+    var w2 = (w + 1) >> 1, h2 = (h + 1) >> 1;
+    var o = new Float32Array(w2 * h2 * 3), m = new Uint8Array(w2 * h2);
+    var x2, y2, dx, dy, x, y, i, r, g, b, n, hm, k;
+    for (y2 = 0; y2 < h2; y2++) for (x2 = 0; x2 < w2; x2++) {
+      r = g = b = n = hm = 0;
+      for (dy = 0; dy < 2; dy++) { y = 2 * y2 + dy; if (y >= h) continue;
+        for (dx = 0; dx < 2; dx++) { x = 2 * x2 + dx; if (x >= w) continue;
+          i = y * w + x; r += img[i * 3]; g += img[i * 3 + 1]; b += img[i * 3 + 2]; n++;
+          if (mask[i]) hm = 1;
+        } }
+      k = y2 * w2 + x2; o[k * 3] = r / n; o[k * 3 + 1] = g / n; o[k * 3 + 2] = b / n; m[k] = hm;
+    }
+    return { img: o, mask: m, w: w2, h: h2 };
+  }
+
+  // Fill the hole by peeling it from the outside in (average of known neighbours).
+  function onionFill(img, mask, w, h) {
+    var n = w * h, known = new Uint8Array(n), i, cnt = 0, hc = 0;
+    for (i = 0; i < n; i++) { if (mask[i]) hc++; else { known[i] = 1; cnt++; } }
+    var cur = new Int32Array(hc), c = 0;
+    for (i = 0; i < n; i++) if (mask[i]) cur[c++] = i;
+    if (!cnt) { for (i = 0; i < hc; i++) { var q = cur[i] * 3; img[q] = img[q + 1] = img[q + 2] = 128; } return; }
+    while (cur.length) {
+      var lIdx = new Int32Array(cur.length), lCol = new Float32Array(cur.length * 3), ln = 0;
+      var rest = new Int32Array(cur.length), rn = 0;
+      for (var k = 0; k < cur.length; k++) {
+        i = cur[k]; var x = i % w, y = (i / w) | 0, r = 0, g = 0, b = 0, nn = 0;
+        for (var dy = -1; dy <= 1; dy++) { var yy = y + dy; if (yy < 0 || yy >= h) continue;
+          for (var dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; var xx = x + dx; if (xx < 0 || xx >= w) continue;
+            var j = yy * w + xx; if (known[j]) { r += img[j * 3]; g += img[j * 3 + 1]; b += img[j * 3 + 2]; nn++; } } }
+        if (nn) { lIdx[ln] = i; lCol[ln * 3] = r / nn; lCol[ln * 3 + 1] = g / nn; lCol[ln * 3 + 2] = b / nn; ln++; }
+        else rest[rn++] = i;
+      }
+      if (!ln) break;
+      for (k = 0; k < ln; k++) { i = lIdx[k]; img[i * 3] = lCol[k * 3]; img[i * 3 + 1] = lCol[k * 3 + 1]; img[i * 3 + 2] = lCol[k * 3 + 2]; known[i] = 1; }
+      cur = rest.subarray(0, rn);
+    }
+  }
+
+  function upsampleInto(lv, prev) {
+    var w = lv.w, h = lv.h, img = lv.img, mask = lv.mask, pi = prev.img, pw = prev.w, ph = prev.h;
+    for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+      var i = y * w + x; if (!mask[i]) continue;
+      var u = (x + 0.5) / 2 - 0.5, v = (y + 0.5) / 2 - 0.5;
+      var x0 = Math.floor(u), y0 = Math.floor(v), fx = u - x0, fy = v - y0;
+      var xa = Math.min(Math.max(x0, 0), pw - 1), xb = Math.min(Math.max(x0 + 1, 0), pw - 1);
+      var ya = Math.min(Math.max(y0, 0), ph - 1), yb = Math.min(Math.max(y0 + 1, 0), ph - 1);
+      for (var c = 0; c < 3; c++) {
+        var a = pi[(ya * pw + xa) * 3 + c] * (1 - fx) + pi[(ya * pw + xb) * 3 + c] * fx;
+        var b = pi[(yb * pw + xa) * 3 + c] * (1 - fx) + pi[(yb * pw + xb) * 3 + c] * fx;
+        img[i * 3 + c] = a * (1 - fy) + b * fy;
+      }
+    }
+  }
+
+  function inpaint(rgba, maskIn, w, h, opts, onProgress) {
+    opts = opts || {};
+    var r = opts.patchRadius || 3;
+    var rand = makeRng(opts.seed || 7);
+    var n = w * h, i;
+    var mask0 = dilate(maskIn, w, h, opts.grow == null ? 2 : opts.grow);
+    var holeCount = 0;
+    for (i = 0; i < n; i++) holeCount += mask0[i];
+    if (!holeCount) return rgba;
+
+    var img0 = new Float32Array(n * 3);
+    for (i = 0; i < n; i++) { img0[i * 3] = rgba[i * 4]; img0[i * 3 + 1] = rgba[i * 4 + 1]; img0[i * 3 + 2] = rgba[i * 4 + 2]; }
+
+    var depth = holeDepth(mask0, w, h);
+    var L = depth <= 4.5 ? 0 : Math.ceil(Math.log2(depth / 4));
+    L = Math.min(L, 6);
+    while (L > 0 && (Math.min(w, h) >> L) < 2 * r + 4) L--;
+
+    var levels = [{ img: img0, mask: mask0, w: w, h: h }];
+    for (var l = 1; l <= L; l++) {
+      var p = levels[l - 1]; levels.push(downsample(p.img, p.mask, p.w, p.h));
+    }
+
+    var big = holeCount > 300000;
+    function emFor(lv) {
+      var e = lv === 0 ? (L === 0 ? 4 : 2) : (lv === L ? 5 : 3);
+      return big ? Math.max(1, e - 1) : e;
+    }
+    var totalWork = 0, doneWork = 0, lastReport = 0;
+    for (l = 0; l <= L; l++) {
+      var hc = 0, mk = levels[l].mask; for (i = 0; i < mk.length; i++) hc += mk[i];
+      levels[l].hc = hc; totalWork += (hc + 1) * emFor(l);
+    }
+    function tick(amount) {
+      doneWork += amount;
+      if (onProgress) { var t = Date.now(); if (t - lastReport > 120) { lastReport = t; onProgress(Math.min(0.99, doneWork / totalWork)); } }
+    }
+
+    function refine(lv, prev, emIters, finest, hw) {
+      var img = lv.img, mask = lv.mask, w = lv.w, h = lv.h, N = w * h;
+      var dil = dilate(mask, w, h, r);
+      var srcOK = new Uint8Array(N), tgt = new Uint8Array(N), srcN = 0, tgtN = 0, x, y, k, idx;
+      for (y = r; y < h - r; y++) for (x = r; x < w - r; x++) {
+        idx = y * w + x; if (dil[idx]) { tgt[idx] = 1; tgtN++; } else { srcOK[idx] = 1; srcN++; }
+      }
+      var state = { nx: null, ny: null, tgt: new Uint8Array(N) };
+      if (!srcN || !tgtN) return state;
+      var srcList = new Int32Array(srcN), tList = new Int32Array(tgtN), tX = new Int32Array(tgtN), tY = new Int32Array(tgtN);
+      var sc = 0, tc = 0;
+      for (y = r; y < h - r; y++) for (x = r; x < w - r; x++) {
+        idx = y * w + x;
+        if (tgt[idx]) { tList[tc] = idx; tX[tc] = x; tY[tc] = y; tc++; } else if (srcOK[idx]) srcList[sc++] = idx;
+      }
+      var nx = new Int32Array(N), ny = new Int32Array(N), nd = new Float32Array(N);
+      state.nx = nx; state.ny = ny; state.tgt = tgt;
+      var span = (2 * r + 1) * 3, W3 = w * 3, rows = 2 * r + 1;
+
+      function pdPlain(tx, ty, sx, sy, cut) {
+        var s = 0, ti = ((ty - r) * w + (tx - r)) * 3, si = ((sy - r) * w + (sx - r)) * 3, d;
+        for (var a = 0; a < rows; a++) {
+          for (var b = 0; b < span; b++) { d = img[ti + b] - img[si + b]; s += d * d; }
+          if (s >= cut) return s;
+          ti += W3; si += W3;
+        }
+        return s;
+      }
+      var pw = null;
+      if (hw < 1) { pw = new Float32Array(N); for (idx = 0; idx < N; idx++) pw[idx] = mask[idx] ? hw : 1; }
+      // hole pixels count less than known ones in the match, so smooth estimates do not pull in smooth source patches
+      function pdw(tx, ty, sx, sy, cut) {
+        var s = 0, tp = (ty - r) * w + (tx - r), sp = (sy - r) * w + (sx - r), a, b, ti, si, d0, d1, d2;
+        for (a = 0; a < rows; a++) {
+          for (b = 0; b < rows; b++) {
+            ti = (tp + b) * 3; si = (sp + b) * 3; d0 = img[ti] - img[si]; d1 = img[ti + 1] - img[si + 1]; d2 = img[ti + 2] - img[si + 2];
+            s += pw[tp + b] * (d0 * d0 + d1 * d1 + d2 * d2);
+          }
+          if (s >= cut) return s;
+          tp += w; sp += w;
+        }
+        return s;
+      }
+      var pd = pw ? pdw : pdPlain;
+      function validSrc(cx, cy) { return cx >= r && cx < w - r && cy >= r && cy < h - r && srcOK[cy * w + cx] === 1; }
+
+      for (k = 0; k < tgtN; k++) {
+        idx = tList[k]; x = tX[k]; y = tY[k];
+        var qx = -1, qy = -1;
+        if (prev && prev.nx) {
+          var pi = (y >> 1) * prev.w + (x >> 1);
+          if (pi < prev.tgt.length && prev.tgt[pi]) {
+            qx = prev.nx[pi] * 2 + (x & 1); qy = prev.ny[pi] * 2 + (y & 1);
+            if (!validSrc(qx, qy)) qx = -1;
+          }
+        }
+        if (qx < 0) { var s0 = srcList[(rand() * srcN) | 0]; qx = s0 % w; qy = (s0 / w) | 0; }
+        nx[idx] = qx; ny[idx] = qy;
+      }
+
+      var holeIdx = [], hn = 0;
+      for (idx = 0; idx < N; idx++) if (mask[idx]) hn++;
+      var hIdx = new Int32Array(hn); hn = 0;
+      for (idx = 0; idx < N; idx++) if (mask[idx]) hIdx[hn++] = idx;
+      var acc = new Float32Array(N * 3), accw = new Float32Array(N);
+      var maxRad = Math.max(w, h);
+
+      for (var it = 0; it < emIters; it++) {
+        for (k = 0; k < tgtN; k++) { idx = tList[k]; nd[idx] = pd(tX[k], tY[k], nx[idx], ny[idx], Infinity); }
+        var sweeps = (it === 0 && !(prev && prev.nx)) ? (opts.pmFirst || 4) : (opts.pmNext || 2);
+        if (big) sweeps = Math.min(sweeps, 2);
+        for (var sw = 0; sw < sweeps; sw++) {
+          var fwd = (sw % 2 === 0);
+          for (var kk = 0; kk < tgtN; kk++) {
+            k = fwd ? kk : tgtN - 1 - kk;
+            idx = tList[k]; x = tX[k]; y = tY[k];
+            var best = nd[idx], bx = nx[idx], by = ny[idx], cx, cy, d;
+            if (fwd) {
+              if (x > 0 && tgt[idx - 1]) { cx = nx[idx - 1] + 1; cy = ny[idx - 1];
+                if (validSrc(cx, cy)) { d = pd(x, y, cx, cy, best); if (d < best) { best = d; bx = cx; by = cy; } } }
+              if (y > 0 && tgt[idx - w]) { cx = nx[idx - w]; cy = ny[idx - w] + 1;
+                if (validSrc(cx, cy)) { d = pd(x, y, cx, cy, best); if (d < best) { best = d; bx = cx; by = cy; } } }
+            } else {
+              if (x < w - 1 && tgt[idx + 1]) { cx = nx[idx + 1] - 1; cy = ny[idx + 1];
+                if (validSrc(cx, cy)) { d = pd(x, y, cx, cy, best); if (d < best) { best = d; bx = cx; by = cy; } } }
+              if (y < h - 1 && tgt[idx + w]) { cx = nx[idx + w]; cy = ny[idx + w] - 1;
+                if (validSrc(cx, cy)) { d = pd(x, y, cx, cy, best); if (d < best) { best = d; bx = cx; by = cy; } } }
+            }
+            for (var rad = maxRad; rad >= 1; rad >>= 1) {
+              cx = bx + (((rand() * 2 - 1) * rad) | 0); cy = by + (((rand() * 2 - 1) * rad) | 0);
+              if (validSrc(cx, cy)) { d = pd(x, y, cx, cy, best); if (d < best) { best = d; bx = cx; by = cy; } }
+            }
+            if (rand() < 0.08) { var sg = srcList[(rand() * srcN) | 0]; cx = sg % w; cy = (sg / w) | 0;
+              d = pd(x, y, cx, cy, best); if (d < best) { best = d; bx = cx; by = cy; } }
+            nd[idx] = best; nx[idx] = bx; ny[idx] = by;
+          }
+        }
+
+        // vote: each hole pixel = weighted mean of the source pixels its covering patches map to
+        var step = Math.max(1, (tgtN / 600) | 0), samp = [];
+        for (k = 0; k < tgtN; k += step) samp.push(nd[tList[k]]);
+        samp.sort(function (a, b) { return a - b; });
+        var sig = samp[Math.floor(samp.length * 0.75)] || 0;
+        sig = Math.max(sig, rows * rows * 3 * 9);
+        if (finest && it === emIters - 1) sig *= 0.2;
+        var wta = finest && it === emIters - 1;
+        for (k = 0; k < hn; k++) { idx = hIdx[k]; acc[idx * 3] = acc[idx * 3 + 1] = acc[idx * 3 + 2] = 0; accw[idx] = wta ? Infinity : 0; }
+        for (k = 0; k < tgtN; k++) {
+          idx = tList[k]; x = tX[k]; y = tY[k];
+          var sx = nx[idx], sy = ny[idx], wt = Math.exp(-Math.min(nd[idx] / sig, 30));
+          if (wta) {
+            // last pass at full resolution: keep the single best-matching source pixel so grain and fine texture survive
+            var dd = nd[idx];
+            for (var dy2 = -r; dy2 <= r; dy2++) {
+              var tr2 = (y + dy2) * w + x, sr2 = (sy + dy2) * w + sx;
+              for (var dx2 = -r; dx2 <= r; dx2++) {
+                var t2 = tr2 + dx2; if (!mask[t2] || dd >= accw[t2]) continue;
+                var q3 = (sr2 + dx2) * 3; acc[t2 * 3] = img[q3]; acc[t2 * 3 + 1] = img[q3 + 1]; acc[t2 * 3 + 2] = img[q3 + 2]; accw[t2] = dd;
+              }
+            }
+            continue;
+          }
+          for (var dy = -r; dy <= r; dy++) {
+            var trow = (y + dy) * w + x, srow = (sy + dy) * w + sx;
+            for (var dx = -r; dx <= r; dx++) {
+              var t = trow + dx; if (!mask[t]) continue;
+              var s3 = (srow + dx) * 3;
+              acc[t * 3] += wt * img[s3]; acc[t * 3 + 1] += wt * img[s3 + 1]; acc[t * 3 + 2] += wt * img[s3 + 2]; accw[t] += wt;
+            }
+          }
+        }
+        for (k = 0; k < hn; k++) {
+          idx = hIdx[k]; var aw = accw[idx];
+          if (wta) { if (aw !== Infinity) { img[idx * 3] = acc[idx * 3]; img[idx * 3 + 1] = acc[idx * 3 + 1]; img[idx * 3 + 2] = acc[idx * 3 + 2]; } }
+          else if (aw > 0) { img[idx * 3] = acc[idx * 3] / aw; img[idx * 3 + 1] = acc[idx * 3 + 1] / aw; img[idx * 3 + 2] = acc[idx * 3 + 2] / aw; }
+        }
+        tick(hn);
+      }
+      return state;
+    }
+
+    var prev = null;
+    for (l = L; l >= 0; l--) {
+      var lv = levels[l];
+      if (l === L) onionFill(lv.img, lv.mask, lv.w, lv.h); else upsampleInto(lv, prev);
+      var st = refine(lv, prev, emFor(l), l === 0, l === L ? 1 : (opts.holeWeight || 0.35));
+      prev = { img: lv.img, w: lv.w, h: lv.h, nx: st.nx, ny: st.ny, tgt: st.tgt };
+      if (l < L) levels[l + 1] = null;
+    }
+
+    var fin = levels[0].img;
+    for (i = 0; i < n; i++) {
+      if (!mask0[i]) continue;
+      var v0 = fin[i * 3], v1 = fin[i * 3 + 1], v2 = fin[i * 3 + 2];
+      rgba[i * 4] = v0 < 0 ? 0 : v0 > 255 ? 255 : v0 + 0.5;
+      rgba[i * 4 + 1] = v1 < 0 ? 0 : v1 > 255 ? 255 : v1 + 0.5;
+      rgba[i * 4 + 2] = v2 < 0 ? 0 : v2 > 255 ? 255 : v2 + 0.5;
+    }
+    if (onProgress) onProgress(1);
+    return rgba;
+  }
+
+  return { inpaint: inpaint, dilate: dilate, onionFill: onionFill };
+}
+
+/* Rubout watermark finder: a small U-Net (about 60k weights) that runs in plain JavaScript.
+   Trained on synthetic overlays (tiled text, corner stamps, logos, date stamps, banners). */
+function makeNet() {
+  'use strict';
+  var layers = null;
+
+  function load(meta, buf) {
+    var all = new Float32Array(buf); layers = {};
+    meta.forEach(function (m) {
+      layers[m.name] = { k: m.k, ci: m.cin, co: m.cout, w: all.subarray(m.woff, m.woff + m.k * m.k * m.cin * m.cout), b: all.subarray(m.boff, m.boff + m.cout) };
+    });
+  }
+
+  // 3x3 SAME conv (+ReLU). x: [H][W][ci] -> [H][W][co]
+  function conv3(x, H, W, L, relu) {
+    var ci = L.ci, co = L.co, w = L.w, b = L.b, out = new Float32Array(H * W * co), y, xx, ky, kx, c, o, yy, px, i0, w0, wb, v, o0;
+    for (y = 0; y < H; y++) {
+      for (xx = 0; xx < W; xx++) {
+        o0 = (y * W + xx) * co;
+        for (o = 0; o < co; o++) out[o0 + o] = b[o];
+        for (ky = 0; ky < 3; ky++) {
+          yy = y + ky - 1; if (yy < 0 || yy >= H) continue;
+          for (kx = 0; kx < 3; kx++) {
+            px = xx + kx - 1; if (px < 0 || px >= W) continue;
+            i0 = (yy * W + px) * ci; w0 = (ky * 3 + kx) * ci * co;
+            for (c = 0; c < ci; c++) {
+              v = x[i0 + c]; if (v === 0) continue; wb = w0 + c * co;
+              for (o = 0; o < co; o++) out[o0 + o] += v * w[wb + o];
+            }
+          }
+        }
+        if (relu) for (o = 0; o < co; o++) if (out[o0 + o] < 0) out[o0 + o] = 0;
+      }
+    }
+    return out;
+  }
+  function pool(x, H, W, C) {
+    var h2 = H >> 1, w2 = W >> 1, out = new Float32Array(h2 * w2 * C), y, xx, c, a, b, d, e, m;
+    for (y = 0; y < h2; y++) for (xx = 0; xx < w2; xx++) {
+      a = ((2 * y) * W + 2 * xx) * C; b = a + C; d = a + W * C; e = d + C;
+      for (c = 0; c < C; c++) { m = x[a + c]; if (x[b + c] > m) m = x[b + c]; if (x[d + c] > m) m = x[d + c]; if (x[e + c] > m) m = x[e + c]; out[(y * w2 + xx) * C + c] = m; }
+    }
+    return out;
+  }
+  // concat(upsample2x(lo), skip) along channels
+  function upCat(lo, h, w, cl, skip, cs) {
+    var H = h * 2, W = w * 2, C = cl + cs, out = new Float32Array(H * W * C), y, x, c, s, d;
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      d = (y * W + x) * C; s = ((y >> 1) * w + (x >> 1)) * cl;
+      for (c = 0; c < cl; c++) out[d + c] = lo[s + c];
+      s = (y * W + x) * cs;
+      for (c = 0; c < cs; c++) out[d + cl + c] = skip[s + c];
+    }
+    return out;
+  }
+
+  // rgb: Uint8 [h][w][3]. Returns Float32 probabilities [h][w].
+  function run(rgb, w, h, onStep) {
+    var W = (w + 7) & ~7, H = (h + 7) & ~7, x = new Float32Array(H * W * 3), i, j, c, sx, sy;
+    for (j = 0; j < H; j++) { sy = Math.min(h - 1, j);
+      for (i = 0; i < W; i++) { sx = Math.min(w - 1, i); for (c = 0; c < 3; c++) x[(j * W + i) * 3 + c] = rgb[(sy * w + sx) * 3 + c] / 255 - 0.5; } }
+    var L = layers, step = 0, total = 15;
+    function tick() { step++; if (onStep) onStep(step / total); }
+    var e1 = conv3(conv3(x, H, W, L.e1a, true), H, W, L.e1b, true); tick(); tick();
+    var p1 = pool(e1, H, W, 8), H2 = H >> 1, W2 = W >> 1;
+    var e2 = conv3(conv3(p1, H2, W2, L.e2a, true), H2, W2, L.e2b, true); tick(); tick();
+    var p2 = pool(e2, H2, W2, 16), H4 = H2 >> 1, W4 = W2 >> 1;
+    var e3 = conv3(conv3(p2, H4, W4, L.e3a, true), H4, W4, L.e3b, true); tick(); tick();
+    var p3 = pool(e3, H4, W4, 32), H8 = H4 >> 1, W8 = W4 >> 1;
+    var b = conv3(conv3(p3, H8, W8, L.bna, true), H8, W8, L.bnb, true); tick(); tick();
+    var d3 = conv3(conv3(upCat(b, H8, W8, 48, e3, 32), H4, W4, L.d3a, true), H4, W4, L.d3b, true); tick(); tick();
+    var d2 = conv3(conv3(upCat(d3, H4, W4, 32, e2, 16), H2, W2, L.d2a, true), H2, W2, L.d2b, true); tick(); tick();
+    var d1 = conv3(conv3(upCat(d2, H2, W2, 16, e1, 8), H, W, L.d1a, true), H, W, L.d1b, true); tick(); tick();
+    // 1x1 output + sigmoid on the unpadded area
+    var o = L.out, prob = new Float32Array(w * h), z, k;
+    for (j = 0; j < h; j++) for (i = 0; i < w; i++) {
+      z = o.b[0]; for (k = 0; k < 8; k++) z += d1[(j * W + i) * 8 + k] * o.w[k];
+      prob[j * w + i] = 1 / (1 + Math.exp(-z));
+    }
+    tick();
+    return prob;
+  }
+
+  return { load: load, run: run };
+}
+
+</script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var stage = $('stage'), board = $('board'), photo = $('photo'), ov = $('ov'), ring = $('ring'), chip = $('chip');
+  var pctx = photo.getContext('2d', { willReadFrequently: true }), octx = ov.getContext('2d');
+  var coreMain = makeInpaintCore();
+
+  var W = 0, H = 0, mask = null, ovScale = 1;
+  var view = { s: 1, x: 0, y: 0 }, userZoomed = false;
+  var mode = 'auto', tool = 'brush', brushPx = 36, tol = 22, everywhere = false, sens = 1;
+  var undoStack = [], busy = false, cancelled = false;
+  var MASK_RGB = [255, 79, 134];
+  var THR = [0.6, 0.45, 0.3];
+
+  function setChip(html) { chip.innerHTML = html; }
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+  function activeTool() { return mode === 'auto' ? 'move' : tool; }
+
+  /* ---------- view ---------- */
+  function applyView() { board.style.transform = 'translate(' + view.x + 'px,' + view.y + 'px) scale(' + view.s + ')'; }
+  function stageRect() { return stage.getBoundingClientRect(); }
+  function fitView() {
+    if (!W) return;
+    var r = stageRect(), pad = 10, s = Math.min((r.width - pad * 2) / W, (r.height - pad * 2) / H);
+    view.s = s; view.x = (r.width - W * s) / 2; view.y = (r.height - H * s) / 2; userZoomed = false; applyView();
+  }
+  function minScale() { var r = stageRect(); return Math.min(r.width / W, r.height / H) * 0.6; }
+  function zoomAt(mx, my, ns) {
+    ns = clamp(ns, minScale(), 14);
+    var ix = (mx - view.x) / view.s, iy = (my - view.y) / view.s;
+    view.s = ns; view.x = mx - ix * ns; view.y = my - iy * ns; userZoomed = true; applyView();
+  }
+  function toImg(cx, cy) { var r = stageRect(); return [(cx - r.left - view.x) / view.s, (cy - r.top - view.y) / view.s]; }
+
+  /* ---------- image ---------- */
+  function setImage(src, sw, sh) {
+    var maxSide = 4096, maxArea = 12600000;
+    var k = Math.min(1, maxSide / Math.max(sw, sh), Math.sqrt(maxArea / (sw * sh)));
+    W = Math.max(1, Math.round(sw * k)); H = Math.max(1, Math.round(sh * k));
+    photo.width = W; photo.height = H; photo.style.width = W + 'px'; photo.style.height = H + 'px';
+    pctx.drawImage(src, 0, 0, W, H);
+    mask = new Uint8Array(W * H);
+    ovScale = Math.min(1, 2048 / Math.max(W, H));
+    ov.width = Math.max(1, Math.round(W * ovScale)); ov.height = Math.max(1, Math.round(H * ovScale));
+    ov.style.width = W + 'px'; ov.style.height = H + 'px'; board.style.width = W + 'px'; board.style.height = H + 'px';
+    undoStack = []; octx.clearRect(0, 0, ov.width, ov.height);
+    editsChanged(); fitView(); refreshButtons();
+  }
+  function loadFile(file) {
+    if (!file) return;
+    var url = URL.createObjectURL(file), im = new Image();
+    setChip('Opening photo…');
+    im.onload = function () {
+      setImage(im, im.naturalWidth, im.naturalHeight); URL.revokeObjectURL(url);
+      setChip(mode === 'auto' ? 'Tap <b>Auto remove</b> and the watermark is found and filled in.' : 'Paint over the mark you want gone. Pinch to zoom, <b>two fingers</b> to move.');
+    };
+    im.onerror = function () { URL.revokeObjectURL(url); setChip('That file could not be opened. Try a JPEG or PNG.'); };
+    im.src = url;
+  }
+
+  function makeSample() {
+    var w = 1280, h = 853, c = document.createElement('canvas'); c.width = w; c.height = h;
+    var g = c.getContext('2d'), s = 11;
+    function R() { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }
+    var sky = g.createLinearGradient(0, 0, 0, h * 0.62); sky.addColorStop(0, '#5f93c9'); sky.addColorStop(1, '#f3d9b4');
+    g.fillStyle = sky; g.fillRect(0, 0, w, h);
+    var sun = g.createRadialGradient(w * 0.72, h * 0.46, 4, w * 0.72, h * 0.46, 260);
+    sun.addColorStop(0, 'rgba(255,248,220,.95)'); sun.addColorStop(1, 'rgba(255,230,180,0)'); g.fillStyle = sun; g.fillRect(0, 0, w, h);
+    for (var i = 0; i < 46; i++) {
+      var cx = R() * w, cy = 40 + R() * h * 0.3, rr = 30 + R() * 70, cg = g.createRadialGradient(cx, cy, 2, cx, cy, rr);
+      cg.addColorStop(0, 'rgba(255,255,255,.35)'); cg.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = cg; g.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
+    }
+    function ridge(base, amp, fill, f1, f2, ph) {
+      g.fillStyle = fill; g.beginPath(); g.moveTo(0, h);
+      for (var x = 0; x <= w; x += 4) g.lineTo(x, base + amp * Math.sin(x * f1 + ph) + amp * 0.5 * Math.sin(x * f2 + ph * 2.1) + amp * 0.25 * Math.sin(x * f2 * 3.3 + ph));
+      g.lineTo(w, h); g.fill();
+    }
+    ridge(h * 0.5, 34, '#7d8fb0', 0.006, 0.017, 1); ridge(h * 0.56, 26, '#587a86', 0.009, 0.021, 3);
+    var mg = g.createLinearGradient(0, h * 0.6, 0, h); mg.addColorStop(0, '#5d8a3c'); mg.addColorStop(1, '#2f5a22');
+    ridge(h * 0.63, 8, mg, 0.01, 0.03, 2);
+    g.lineCap = 'round';
+    for (i = 0; i < 16000; i++) {
+      var x = R() * w, y = h * 0.62 + R() * h * 0.38, len = 5 + ((y - h * 0.6) / h) * 34 * R(), lean = (R() - 0.5) * 8;
+      g.strokeStyle = 'hsl(' + (88 + R() * 34) + ',' + (40 + R() * 20) + '%,' + (16 + R() * 30) + '%)'; g.lineWidth = 1 + R() * 1.6;
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + lean, y - len); g.stroke();
+    }
+    var id = g.getImageData(0, 0, w, h), d = id.data;
+    for (i = 0; i < d.length; i += 4) { var n = (R() - 0.5) * 14; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+    g.putImageData(id, 0, 0);
+    g.save(); g.translate(w / 2, h / 2 + 30); g.rotate(-0.38);
+    g.font = '700 74px "Helvetica Neue", Arial, sans-serif'; g.textAlign = 'center'; g.fillStyle = 'rgba(255,255,255,.36)';
+    g.fillText('© SAMPLE STUDIO', 0, 0); g.restore();
+    g.font = '600 30px "Helvetica Neue", Arial, sans-serif'; g.textAlign = 'right'; g.fillStyle = 'rgba(255,255,255,.42)';
+    g.fillText('© SAMPLE STUDIO', w - 28, h - 26);
+    return c;
+  }
+
+  /* ---------- mask painting ---------- */
+  function stamp(ix, iy, r, val) {
+    r = Math.max(0.6, r);
+    var y0 = Math.max(0, Math.floor(iy - r)), y1 = Math.min(H - 1, Math.ceil(iy + r));
+    for (var y = y0; y <= y1; y++) {
+      var dy = y - iy, hw = Math.sqrt(Math.max(0, r * r - dy * dy));
+      var x0 = Math.max(0, Math.ceil(ix - hw)), x1 = Math.min(W - 1, Math.floor(ix + hw));
+      if (x1 >= x0) mask.fill(val, y * W + x0, y * W + x1 + 1);
+    }
+  }
+  function segment(ax, ay, bx, by, r, val) {
+    var dist = Math.hypot(bx - ax, by - ay), step = Math.max(1, r * 0.5), n = Math.max(1, Math.ceil(dist / step));
+    for (var i = 0; i <= n; i++) stamp(ax + (bx - ax) * i / n, ay + (by - ay) * i / n, r, val);
+    octx.globalCompositeOperation = val ? 'source-over' : 'destination-out';
+    octx.strokeStyle = 'rgb(' + MASK_RGB.join(',') + ')'; octx.lineCap = 'round'; octx.lineJoin = 'round';
+    octx.lineWidth = Math.max(1, 2 * r * ovScale);
+    octx.beginPath(); octx.moveTo(ax * ovScale, ay * ovScale); octx.lineTo(bx * ovScale + 0.01, by * ovScale); octx.stroke();
+  }
+  function redrawOverlay() {
+    var ow = ov.width, oh = ov.height, id = octx.createImageData(ow, oh), d = id.data, k = Math.max(1, Math.ceil(1 / ovScale));
+    for (var oy = 0; oy < oh; oy++) {
+      var sy = Math.floor(oy / ovScale);
+      for (var ox = 0; ox < ow; ox++) {
+        var sx = Math.floor(ox / ovScale), hit = 0;
+        for (var dy = 0; dy < k && !hit; dy++) { var yy = sy + dy; if (yy >= H) break;
+          for (var dx = 0; dx < k; dx++) { var xx = sx + dx; if (xx < W && mask[yy * W + xx]) { hit = 1; break; } } }
+        if (hit) { var o = (oy * ow + ox) * 4; d[o] = MASK_RGB[0]; d[o + 1] = MASK_RGB[1]; d[o + 2] = MASK_RGB[2]; d[o + 3] = 255; }
+      }
+    }
+    octx.globalCompositeOperation = 'source-over'; octx.putImageData(id, 0, 0);
+  }
+  function clearMask() { mask.fill(0); octx.clearRect(0, 0, ov.width, ov.height); }
+  function maskCount() { var c = 0; for (var i = 0; i < mask.length; i++) c += mask[i]; return c; }
+  function maskBBox() {
+    var first = mask.indexOf(1); if (first < 0) return null;
+    var last = mask.lastIndexOf(1), y0 = Math.floor(first / W), y1 = Math.floor(last / W), x0 = W, x1 = -1;
+    for (var y = y0; y <= y1; y++) {
+      var row = mask.subarray(y * W, y * W + W), a = row.indexOf(1);
+      if (a >= 0) { x0 = Math.min(x0, a); x1 = Math.max(x1, row.lastIndexOf(1)); }
+    }
+    return { x0: x0, y0: y0, x1: x1, y1: y1 };
+  }
+  function selectionChanged() {
+    var c = maskCount(), pct = c / (W * H) * 100;
+    if (!c) setChip(mode === 'auto' ? 'Tap <b>Auto remove</b>.' : 'Nothing selected. Paint over the mark, or use the wand on a letter.');
+    else if (pct > 35) setChip('<b>' + pct.toFixed(0) + '%</b> of the photo is selected. That is a lot to fill, so it may take a while.');
+    else setChip('<b>' + (pct < 0.1 ? '<0.1' : pct.toFixed(pct < 10 ? 1 : 0)) + '%</b> selected. Tap Remove when it covers the whole mark.');
+    refreshButtons();
+  }
+
+  /* ---------- wand ---------- */
+  function floodSelect(d, sx, sy, thr2, sr, sg, sb) {
+    var sel = new Uint8Array(W * H), stack = [sx, sy];
+    function match(i) { var a = d[i * 4] - sr, b = d[i * 4 + 1] - sg, c = d[i * 4 + 2] - sb; return a * a + b * b + c * c <= thr2; }
+    while (stack.length) {
+      var y = stack.pop(), x = stack.pop(), base = y * W;
+      if (sel[base + x] || !match(base + x)) continue;
+      var xl = x, xr = x;
+      while (xl > 0 && !sel[base + xl - 1] && match(base + xl - 1)) xl--;
+      while (xr < W - 1 && !sel[base + xr + 1] && match(base + xr + 1)) xr++;
+      for (var k = xl; k <= xr; k++) sel[base + k] = 1;
+      for (var m = 0; m < 2; m++) {
+        var ny = m ? y + 1 : y - 1; if (ny < 0 || ny >= H) continue;
+        var run = false;
+        for (k = xl; k <= xr; k++) { var j = ny * W + k, ok = !sel[j] && match(j); if (ok && !run) { stack.push(k, ny); run = true; } else if (!ok) run = false; }
+      }
+    }
+    return sel;
+  }
+  function wandAt(ix, iy) {
+    ix = clamp(Math.round(ix), 0, W - 1); iy = clamp(Math.round(iy), 0, H - 1);
+    var d = pctx.getImageData(0, 0, W, H).data, sr = 0, sg = 0, sb = 0, n = 0;
+    for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+      var x = clamp(ix + dx, 0, W - 1), y = clamp(iy + dy, 0, H - 1), o = (y * W + x) * 4; sr += d[o]; sg += d[o + 1]; sb += d[o + 2]; n++;
+    }
+    sr /= n; sg /= n; sb /= n;
+    var thr = tol * 2.4, thr2 = thr * thr, sel;
+    if (everywhere) {
+      sel = new Uint8Array(W * H);
+      for (var i = 0; i < W * H; i++) { var a = d[i * 4] - sr, b = d[i * 4 + 1] - sg, c = d[i * 4 + 2] - sb; if (a * a + b * b + c * c <= thr2) sel[i] = 1; }
+    } else sel = floodSelect(d, ix, iy, thr2, sr, sg, sb);
+    sel = coreMain.dilate(sel, W, H, clamp(Math.round(Math.max(W, H) / 700), 1, 6));
+    for (i = 0; i < sel.length; i++) if (sel[i]) mask[i] = 1;
+    redrawOverlay(); selectionChanged();
+  }
+
+  /* ---------- pointer handling ---------- */
+  var ptrs = new Map(), gmode = null, stroke = null, pan0 = null, pinch0 = null, tap0 = null;
+  function mid() {
+    var it = ptrs.values(), a = it.next().value, b = it.next().value, r = stageRect();
+    return { x: (a.x + b.x) / 2 - r.left, y: (a.y + b.y) / 2 - r.top, d: Math.hypot(a.x - b.x, a.y - b.y) || 1 };
+  }
+  function beginStroke(e) {
+    var p = toImg(e.clientX, e.clientY), val = tool === 'brush' ? 1 : 0, r = brushPx / 2 / view.s;
+    stroke = { x: p[0], y: p[1], val: val, r: r }; segment(p[0], p[1], p[0], p[1], r, val);
+  }
+  function moveStroke(list) {
+    for (var i = 0; i < list.length; i++) {
+      var p = toImg(list[i].clientX, list[i].clientY);
+      segment(stroke.x, stroke.y, p[0], p[1], stroke.r, stroke.val); stroke.x = p[0]; stroke.y = p[1];
+    }
+  }
+  function showRing(px, py, ms) {
+    ring.style.width = brushPx + 'px'; ring.style.height = brushPx + 'px'; ring.style.left = px + 'px'; ring.style.top = py + 'px'; ring.style.opacity = 1;
+    clearTimeout(showRing.t); if (ms) showRing.t = setTimeout(function () { ring.style.opacity = 0; }, ms);
+  }
+  stage.addEventListener('pointerdown', function (e) {
+    if (!W || busy || e.target === $('fit')) return;
+    try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size === 1) {
+      var t = activeTool();
+      if (t === 'brush' || t === 'desel') { gmode = 'paint'; beginStroke(e); }
+      else { gmode = t === 'wand' ? 'tap' : 'pan'; tap0 = { x: e.clientX, y: e.clientY }; pan0 = { vx: view.x, vy: view.y, x: e.clientX, y: e.clientY }; }
+    } else if (ptrs.size === 2) {
+      if (gmode === 'paint') { stroke = null; selectionChanged(); }
+      gmode = 'pinch'; var m = mid(); pinch0 = { d: m.d, s: view.s, ix: (m.x - view.x) / view.s, iy: (m.y - view.y) / view.s };
+    }
+  });
+  stage.addEventListener('pointermove', function (e) {
+    var r = stageRect();
+    if (e.pointerType === 'mouse' && (activeTool() === 'brush' || activeTool() === 'desel') && !ptrs.size) showRing(e.clientX - r.left, e.clientY - r.top, 0);
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (gmode === 'paint' && stroke) { var ce = e.getCoalescedEvents ? e.getCoalescedEvents() : null; moveStroke(ce && ce.length ? ce : [e]); }
+    else if (gmode === 'pinch' && ptrs.size >= 2) {
+      var m = mid(), ns = clamp(pinch0.s * m.d / pinch0.d, minScale(), 14);
+      view.s = ns; view.x = m.x - pinch0.ix * ns; view.y = m.y - pinch0.iy * ns; userZoomed = true; applyView();
+    } else if ((gmode === 'tap' || gmode === 'pan') && pan0) {
+      if (gmode === 'tap' && Math.hypot(e.clientX - tap0.x, e.clientY - tap0.y) > 8) gmode = 'pan';
+      if (gmode === 'pan') { view.x = pan0.vx + e.clientX - pan0.x; view.y = pan0.vy + e.clientY - pan0.y; userZoomed = true; applyView(); }
+    }
+  });
+  function endPtr(e, cancel) {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.delete(e.pointerId);
+    if (gmode === 'paint') { stroke = null; gmode = null; selectionChanged(); }
+    else if (gmode === 'tap' && !cancel) { gmode = null; var p = toImg(e.clientX, e.clientY); if (!busy) wandAt(p[0], p[1]); }
+    else if (gmode === 'pinch') { if (ptrs.size < 2) gmode = 'locked'; }
+    if (!ptrs.size) gmode = null;
+  }
+  stage.addEventListener('pointerup', function (e) { endPtr(e, false); });
+  stage.addEventListener('pointercancel', function (e) { endPtr(e, true); });
+  stage.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse' && !ptrs.size) ring.style.opacity = 0; });
+  stage.addEventListener('wheel', function (e) {
+    if (!W) return; e.preventDefault(); var r = stageRect();
+    zoomAt(e.clientX - r.left, e.clientY - r.top, view.s * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)));
+  }, { passive: false });
+  $('fit').addEventListener('click', fitView);
+  window.addEventListener('resize', function () { if (!userZoomed) fitView(); });
+
+  /* ---------- controls ---------- */
+  var toolBtns = { brush: $('t-brush'), wand: $('t-wand'), desel: $('t-desel') };
+  function setTool(t) {
+    tool = t;
+    for (var k in toolBtns) toolBtns[k].setAttribute('aria-checked', String(k === t));
+    var size = $('size'), label = $('sizeLabel');
+    if (t === 'wand') { label.textContent = 'Tolerance'; size.min = 2; size.max = 100; size.value = tol; $('sizeOut').textContent = tol; $('every').hidden = false; }
+    else { label.textContent = t === 'brush' ? 'Brush size' : 'Eraser size'; size.min = 8; size.max = 140; size.value = brushPx; $('sizeOut').textContent = brushPx + ' px'; $('every').hidden = true; }
+    ring.style.opacity = 0;
+  }
+  toolBtns.brush.onclick = function () { setTool('brush'); };
+  toolBtns.wand.onclick = function () { setTool('wand'); setChip('Tap a letter or shape to select what is similar in colour. Raise the tolerance if it misses edges.'); };
+  toolBtns.desel.onclick = function () { setTool('desel'); };
+  $('size').addEventListener('input', function () {
+    var v = +this.value;
+    if (tool === 'wand') { tol = v; $('sizeOut').textContent = v; }
+    else { brushPx = v; $('sizeOut').textContent = v + ' px'; var r = stageRect(); showRing(r.width / 2, r.height / 2, 700); }
+  });
+  $('every').onclick = function () { everywhere = !everywhere; this.setAttribute('aria-pressed', String(everywhere)); };
+  $('file').addEventListener('change', function () { loadFile(this.files && this.files[0]); this.value = ''; });
+  $('clear').onclick = function () { if (busy) return; clearMask(); selectionChanged(); };
+  $('undo').onclick = function () {
+    if (busy || !undoStack.length) return;
+    var u = undoStack.pop(); pctx.putImageData(u.data, u.x, u.y); editsChanged(); setChip('Last removal undone.'); refreshButtons();
+  };
+  function setMode(m) {
+    mode = m;
+    $('tab-auto').setAttribute('aria-selected', String(m === 'auto')); $('tab-manual').setAttribute('aria-selected', String(m === 'manual'));
+    $('panel-auto').hidden = m !== 'auto'; $('panel-manual').hidden = m !== 'manual';
+    $('goText').textContent = m === 'auto' ? 'Auto remove' : 'Remove'; ring.style.opacity = 0;
+    if (W) setChip(m === 'auto' ? 'Tap <b>Auto remove</b> and the watermark is found and filled in.' : 'Paint over the mark you want gone. Pinch to zoom, <b>two fingers</b> to move.');
+    refreshButtons();
+  }
+  $('tab-auto').onclick = function () { if (!busy) setMode('auto'); };
+  $('tab-manual').onclick = function () { if (!busy) setMode('manual'); };
+  ['s0', 's1', 's2'].forEach(function (id, i) {
+    $(id).onclick = function () { sens = i; ['s0', 's1', 's2'].forEach(function (o, j) { $(o).setAttribute('aria-checked', String(i === j)); }); };
+  });
+  function refreshButtons() {
+    var has = !!(mask && mask.indexOf(1) >= 0);
+    $('go').disabled = busy ? false : (mode === 'auto' ? !W : !has);
+    $('clear').disabled = !has || busy; $('undo').disabled = !undoStack.length || busy; $('save').disabled = !W || busy;
+  }
+
+  /* ---------- background jobs (worker with main-thread fallback) ---------- */
+  function makeJobHandler(post) {
+    var net = null, core = makeInpaintCore();
+    function removeSmall(bin, w, h, minArea) {
+      var seen = new Uint8Array(w * h), stack = new Int32Array(w * h), i, sp, list, j, x, y, q;
+      for (i = 0; i < w * h; i++) {
+        if (!bin[i] || seen[i]) continue;
+        list = []; sp = 0; stack[sp++] = i; seen[i] = 1;
+        while (sp) {
+          j = stack[--sp]; list.push(j); x = j % w; y = (j / w) | 0;
+          if (x > 0 && bin[j - 1] && !seen[j - 1]) { seen[j - 1] = 1; stack[sp++] = j - 1; }
+          if (x < w - 1 && bin[j + 1] && !seen[j + 1]) { seen[j + 1] = 1; stack[sp++] = j + 1; }
+          if (y > 0 && bin[j - w] && !seen[j - w]) { seen[j - w] = 1; stack[sp++] = j - w; }
+          if (y < h - 1 && bin[j + w] && !seen[j + w]) { seen[j + w] = 1; stack[sp++] = j + w; }
+        }
+        if (list.length < minArea) for (q = 0; q < list.length; q++) bin[list[q]] = 0;
+      }
+    }
+    function detect(d) {
+      var aw = d.aw, ah = d.ah, prob = net.run(new Uint8Array(d.rgb), aw, ah, function (f) { post({ t: 'p', v: f }); });
+      var bin = new Uint8Array(aw * ah), i, cnt = 0;
+      for (i = 0; i < bin.length; i++) bin[i] = prob[i] > d.thr ? 1 : 0;
+      removeSmall(bin, aw, ah, Math.max(6, Math.round(aw * ah * 2e-5)));
+      for (i = 0; i < bin.length; i++) cnt += bin[i];
+      var Wf = d.W, Hf = d.H, full = new Uint8Array(Wf * Hf);
+      if (cnt) {
+        var sx = aw / Wf, sy = ah / Hf, x, y;
+        for (y = 0; y < Hf; y++) {
+          var v = (y + 0.5) * sy - 0.5, y0 = Math.floor(v), fy = v - y0, ya = Math.min(Math.max(y0, 0), ah - 1), yb = Math.min(Math.max(y0 + 1, 0), ah - 1);
+          for (x = 0; x < Wf; x++) {
+            var u = (x + 0.5) * sx - 0.5, x0 = Math.floor(u), fx = u - x0, xa = Math.min(Math.max(x0, 0), aw - 1), xb = Math.min(Math.max(x0 + 1, 0), aw - 1);
+            var val = (bin[ya * aw + xa] * (1 - fx) + bin[ya * aw + xb] * fx) * (1 - fy) + (bin[yb * aw + xa] * (1 - fx) + bin[yb * aw + xb] * fx) * fy;
+            if (val > 0.35) full[y * Wf + x] = 1;
+          }
+        }
+        full = core.dilate(full, Wf, Hf, Math.max(1, Math.ceil(Wf / aw * 0.5) + 1));
+      }
+      var c2 = 0; for (i = 0; i < full.length; i++) c2 += full[i];
+      post({ t: 'mask', mask: full.buffer, coverage: c2 / (Wf * Hf), raw: cnt / (aw * ah) }, [full.buffer]);
+    }
+    return function (d) {
+      try {
+        if (d.t === 'init') { net = makeNet(); net.load(d.meta, d.weights); post({ t: 'ready' }); }
+        else if (d.t === 'detect') detect(d);
+        else if (d.t === 'fill') {
+          var out = core.inpaint(new Uint8ClampedArray(d.rgba), new Uint8Array(d.mask), d.w, d.h, d.opts, function (p) { post({ t: 'p', v: p }); });
+          post({ t: 'filled', rgba: out.buffer }, [out.buffer]);
+        }
+      } catch (err) { post({ t: 'err', m: String(err && err.message || err) }); }
+    };
+  }
+  function workerMain() { var h = makeJobHandler(function (m, tr) { self.postMessage(m, tr || []); }); self.onmessage = function (e) { h(e.data); }; }
+  function workerSource() {
+    return 'var makeInpaintCore=' + makeInpaintCore.toString() + ';var makeNet=' + makeNet.toString() + ';var makeJobHandler=' + makeJobHandler.toString() + ';(' + workerMain.toString() + ')();';
+  }
+
+  var worker = null, pending = null, localHandler = null, modelData = null, modelReady = false;
+  function deliver(m) {
+    if (!pending) return;
+    if (m.t === 'p') { if (pending.onp) pending.onp(m.v); return; }
+    var p = pending; pending = null;
+    if (m.t === 'err') p.rej(new Error(m.m)); else p.res(m);
+  }
+  function ensureWorker() {
+    if (worker || localHandler) return;
+    try {
+      var url = URL.createObjectURL(new Blob([workerSource()], { type: 'text/javascript' }));
+      worker = new Worker(url); worker.onmessage = function (e) { deliver(e.data); };
+      worker.onerror = function () { if (pending) { var p = pending; pending = null; p.rej(new Error('worker')); } try { worker.terminate(); } catch (_) {} worker = null; modelReady = false; };
+    } catch (_) { localHandler = makeJobHandler(function (m) { deliver(m); }); modelReady = false; }
+  }
+  function send(msg, transfer, onp) {
+    ensureWorker();
+    return new Promise(function (res, rej) {
+      pending = { res: res, rej: rej, onp: onp };
+      if (worker) worker.postMessage(msg, transfer || []); else setTimeout(function () { localHandler(msg); }, 20);
+    });
+  }
+  function ensureModel() {
+    if (modelReady) return Promise.resolve();
+    var get = modelData ? Promise.resolve(modelData) : Promise.all([fetch('model/model.json').then(function (r) { return r.json(); }), fetch('model/weights.bin').then(function (r) { return r.arrayBuffer(); })]).then(function (a) { modelData = { meta: a[0], weights: a[1] }; return modelData; });
+    return get.then(function (m) { return send({ t: 'init', meta: m.meta, weights: m.weights.slice(0) }); }).then(function () { modelReady = true; });
+  }
+  function cancelWork() {
+    cancelled = true;
+    if (worker) { worker.terminate(); worker = null; modelReady = false; }
+    if (pending) { var p = pending; pending = null; p.rej(new Error('cancelled')); }
+  }
+
+  function setProgress(p) { $('go').style.setProperty('--p', Math.round(p * 100)); $('goText').textContent = 'Cancel · ' + Math.round(p * 100) + '%'; }
+  function setBusy(b) {
+    busy = b;
+    if (b) { cancelled = false; setProgress(0); } else { $('go').style.setProperty('--p', 0); $('goText').textContent = mode === 'auto' ? 'Auto remove' : 'Remove'; }
+    refreshButtons();
+  }
+
+  // downscale the photo for the detector in halving steps so thin strokes survive
+  function analysisPixels(maxSide) {
+    var f = Math.min(1, maxSide / Math.max(W, H)), aw = Math.max(8, Math.round(W * f)), ah = Math.max(8, Math.round(H * f));
+    var src = photo, cw = W, ch = H;
+    while (cw / 2 >= aw && ch / 2 >= ah) {
+      var c = document.createElement('canvas'); c.width = Math.max(aw, Math.round(cw / 2)); c.height = Math.max(ah, Math.round(ch / 2));
+      var g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, c.width, c.height); src = c; cw = c.width; ch = c.height;
+    }
+    var out = document.createElement('canvas'); out.width = aw; out.height = ah;
+    var og = out.getContext('2d', { willReadFrequently: true }); og.imageSmoothingQuality = 'high'; og.drawImage(src, 0, 0, aw, ah);
+    var px = og.getImageData(0, 0, aw, ah).data, rgb = new Uint8Array(aw * ah * 3);
+    for (var i = 0, j = 0; i < px.length; i += 4) { rgb[j++] = px[i]; rgb[j++] = px[i + 1]; rgb[j++] = px[i + 2]; }
+    return { rgb: rgb, aw: aw, ah: ah };
+  }
+
+  function fillSelection(base, span) {
+    var bb = maskBBox(); if (!bb) return Promise.resolve(false);
+    var grow = clamp(Math.round(Math.max(W, H) / 900), 1, 4), bw = bb.x1 - bb.x0 + 1, bh = bb.y1 - bb.y0 + 1;
+    var margin = clamp(Math.round(0.6 * Math.max(bw, bh)), 48, 320), cx, cy, cw, ch;
+    for (;;) {
+      cx = Math.max(0, bb.x0 - margin); cy = Math.max(0, bb.y0 - margin);
+      cw = Math.min(W, bb.x1 + 1 + margin) - cx; ch = Math.min(H, bb.y1 + 1 + margin) - cy;
+      if (cw * ch <= 3200000 || margin <= 24) break; margin = Math.round(margin * 0.8);
+    }
+    var bx = Math.max(0, bb.x0 - grow - 2), by = Math.max(0, bb.y0 - grow - 2), bx1 = Math.min(W, bb.x1 + 1 + grow + 2), by1 = Math.min(H, bb.y1 + 1 + grow + 2);
+    var before = pctx.getImageData(bx, by, bx1 - bx, by1 - by), img = pctx.getImageData(cx, cy, cw, ch), cm = new Uint8Array(cw * ch);
+    for (var y = 0; y < ch; y++) cm.set(mask.subarray((cy + y) * W + cx, (cy + y) * W + cx + cw), y * cw);
+    var msg = { t: 'fill', rgba: img.data.buffer, mask: cm.buffer, w: cw, h: ch, opts: { grow: grow, patchRadius: 3, seed: 7 } };
+    return send(msg, [msg.rgba, msg.mask], function (p) { setProgress(base + span * p); }).then(function (m) {
+      pctx.putImageData(new ImageData(new Uint8ClampedArray(m.rgba), cw, ch), cx, cy);
+      undoStack.push({ x: bx, y: by, data: before }); if (undoStack.length > 6) undoStack.shift();
+      clearMask(); editsChanged(); return true;
+    });
+  }
+  function failed(err) {
+    setBusy(false);
+    if (err && err.message === 'cancelled') { setChip('Cancelled. Nothing was changed.'); return; }
+    setChip('Something went wrong. Try again, or use Manual with a smaller selection.');
+  }
+  function go() {
+    if (busy) { cancelWork(); return; }
+    if (!W) return;
+    if (mode === 'manual') {
+      if (!maskCount()) return;
+      setBusy(true); setChip('Filling from the pixels around the mark…');
+      fillSelection(0, 1).then(function () { setBusy(false); setChip('Done. Zoom in to check the area, or tap <b>Undo</b> if it needs another try.'); }, failed);
+      return;
+    }
+    setBusy(true); setChip('Looking for watermarks…');
+    var found = false;
+    ensureModel().then(function () {
+      var a = analysisPixels(512);
+      return send({ t: 'detect', rgb: a.rgb.buffer, aw: a.aw, ah: a.ah, W: W, H: H, thr: THR[sens] }, [a.rgb.buffer], function (p) { setProgress(p * 0.3); });
+    }).then(function (m) {
+      var det = new Uint8Array(m.mask);
+      if (m.coverage < 0.0004) { setBusy(false); setChip('No watermark found. Try <b>Strong</b>, or switch to Manual and paint over it.'); return; }
+      if (m.coverage > 0.4) { setBusy(false); setChip('That would change almost half the photo, so I stopped. Try <b>Gentle</b>, or use Manual.'); return; }
+      for (var i = 0; i < det.length; i++) if (det[i]) mask[i] = 1;
+      redrawOverlay(); found = true;
+      setChip('Found <b>' + (m.coverage * 100).toFixed(m.coverage < 0.1 ? 1 : 0) + '%</b> of the photo. Filling it in…');
+      return fillSelection(0.3, 0.7).then(function () {
+        setBusy(false); setChip('Done. Zoom in to check, then Save. Tap <b>Undo</b> if it missed or removed too much.');
+      });
+    }).then(null, function (err) { if (found) clearMask(); failed(err); });
+  }
+  $('go').onclick = go;
+
+  /* ---------- save ---------- */
+  var readyBlob = null, editVer = 0, blobTimer = null;
+  function editsChanged() { editVer++; readyBlob = null; clearTimeout(blobTimer); blobTimer = setTimeout(prepBlob, 600); }
+  function prepBlob() {
+    var v = editVer; if (!W) return Promise.resolve(null);
+    return new Promise(function (res) { photo.toBlob(function (b) { if (b && v === editVer) readyBlob = b; res(b); }, 'image/jpeg', 0.95); });
+  }
+  function shareBlob(blob) {
+    var file; try { file = new File([blob], 'rubout-photo.jpg', { type: 'image/jpeg' }); } catch (_) { return Promise.reject(new Error('nofile')); }
+    if (navigator.canShare && navigator.canShare({ files: [file] })) return navigator.share({ files: [file] });
+    return Promise.reject(new Error('noshare'));
+  }
+  function openSheet(blob) {
+    var url = URL.createObjectURL(blob); $('sheetImg').src = url; $('sheet').hidden = false;
+    $('sheetShare').onclick = function () { shareBlob(blob).catch(function () {}); };
+    $('sheetDone').onclick = function () { $('sheet').hidden = true; $('sheetImg').removeAttribute('src'); URL.revokeObjectURL(url); };
+  }
+  function save() {
+    if (!W || busy) return;
+    var go2 = function (blob) {
+      if (!blob) { setChip('Could not prepare the photo. Try a smaller image.'); return; }
+      shareBlob(blob).then(function () { setChip('Shared. Choose Save Image to put it in Photos.'); }, function (err) {
+        if (err && err.name === 'AbortError') return; openSheet(blob);
+      });
+    };
+    if (readyBlob) go2(readyBlob); else { setChip('Preparing your photo…'); prepBlob().then(function (b) { if (!b) go2(null); else openSheet(b); }); }
+  }
+  $('save').onclick = save;
+
+  /* ---------- install hint + service worker ---------- */
+  try {
+    var standalone = window.navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+    var dismissed = false; try { dismissed = localStorage.getItem('rubout-install') === '1'; } catch (_) {}
+    var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (ios && !standalone && !dismissed) $('install').hidden = false;
+    $('installX').onclick = function () { $('install').hidden = true; try { localStorage.setItem('rubout-install', '1'); } catch (_) {} setTimeout(fitView, 0); };
+  } catch (_) {}
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) { navigator.serviceWorker.register('sw.js').catch(function () {}); }
+
+  /* ---------- boot ---------- */
+  setTool('brush'); setMode('auto');
+  var sample = makeSample();
+  setImage(sample, sample.width, sample.height);
+  setChip('<b>Sample photo.</b> Tap Auto remove to try it, or Open photo for your own.');
+  requestAnimationFrame(fitView);
+  window.__rubout = { get W() { return W; }, get busy() { return busy; }, maskCount: function () { return maskCount(); } };
+})();
+</script>
+
+</html>
+</body>
