@@ -1,0 +1,2 @@
+# rubout
+watermark remover
