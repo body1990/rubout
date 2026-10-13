@@ -1,0 +1,38 @@
+name: Try WatermarkRemover-AI (Florence-2 + LaMa)
+on:
+  workflow_dispatch: {}
+  push:
+    paths: ['.github/workflows/wmai.yml']
+permissions:
+  contents: write
+jobs:
+  try:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install
+        run: |
+          git clone --depth 1 https://github.com/D-Ogi/WatermarkRemover-AI /tmp/wmr
+          cd /tmp/wmr; ls; cat requirements.txt | head -40
+          pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -q -r requirements.txt || true
+      - name: Run on test photos
+        continue-on-error: true
+        run: |
+          cd /tmp/wmr
+          mkdir -p /tmp/in /tmp/out
+          cp $GITHUB_WORKSPACE/ci/wmtest/*.jpg /tmp/in/
+          python remwm.py /tmp/in /tmp/out --overwrite --max-bbox-percent=40 --force-format=PNG 2>&1 | tail -60 | tee /tmp/wmai.log
+      - name: Commit outputs
+        if: always()
+        run: |
+          mkdir -p report/wmai
+          cp /tmp/out/*.png report/wmai/ 2>/dev/null || true
+          cp /tmp/wmai.log report/wmai/log.txt 2>/dev/null || true
+          git config user.name "github-actions"; git config user.email "actions@users.noreply.github.com"
+          git add report; git commit -m "ci: WatermarkRemover-AI trial [skip ci]" || echo nothing
+          git pull --rebase origin main || true
+          git push origin HEAD:main
