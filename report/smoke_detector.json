@@ -1,1 +1,1 @@
-{"thr": [0.6, 0.45, 0.45], "iou": 0.0859, "multiple": 16, "input": "uint8 NCHW RGB, H and W multiples of 16", "width": 16}
+{"thr": [0.25, 0.1, 0.1], "iou": 0.0803, "multiple": 16, "input": "uint8 NCHW RGB, H and W multiples of 16", "width": 16}

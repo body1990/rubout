@@ -2,14 +2,14 @@ backgrounds: 88 people photos: 170 fonts: 101
 device cpu
 val torch.Size([60, 3, 128, 128]) mask fraction 0.0802663192152977
 params 1558337
-step 25 loss 1.198 lr 0.00011 val IoU 0.086 @thr 0.45 (recall 0.93 precision 0.09) 1.6 min
+step 25 loss 1.021 lr 0.00011 val IoU 0.080 @thr 0.25 (recall 1.00 precision 0.08) 1.6 min
 /tmp/nb_run.py:110: DeprecationWarning: You are using the legacy TorchScript-based ONNX export. Starting in PyTorch 2.9, the new torch.export-based ONNX exporter has become the default. Learn more about the new export logic: https://docs.pytorch.org/docs/stable/onnx_export.html. For exporting control flow: https://pytorch.org/tutorials/beginner/onnx/export_control_flow_model_to_onnx_tutorial.html
   try: torch.onnx.export(ex, dummy, 'detector.onnx', dynamo=False, **kw)
-[0;93m2026-10-13 14:06:49.820009472 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
-BEST val IoU 0.086 at threshold 0.45
-thresholds (gentle, balanced, strong): [0.6, 0.45, 0.45]
-(256, 320) onnx vs torch max diff 0.3046807050704956
-(384, 512) onnx vs torch max diff 0.32724666595458984
+[0;93m2026-10-13 14:13:26.995745546 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+BEST val IoU 0.08 at threshold 0.25
+thresholds (gentle, balanced, strong): [0.25, 0.1, 0.1]
+(256, 320) onnx vs torch: max diff 2.086162567138672e-07 mean diff 3.48554749507457e-08 torch mean 0.36567503213882446 onnx mean 0.3656750023365021
+(384, 512) onnx vs torch: max diff 2.384185791015625e-07 mean diff 3.5168948642194664e-08 torch mean 0.36386990547180176 onnx mean 0.36386990547180176
 6.237071 MB
--rw-r--r-- 1 runner runner     122 Oct 13 14:06 detector.json
--rw-r--r-- 1 runner runner 6237071 Oct 13 14:06 detector.onnx
+-rw-r--r-- 1 runner runner     121 Oct 13 14:13 detector.json
+-rw-r--r-- 1 runner runner 6237071 Oct 13 14:13 detector.onnx
