@@ -31,3 +31,9 @@ t=14000 loss=0.5919 lr=0.00014 val IoU=0.318 rec=0.370 prec=0.694 elapsed=123.2m
 t=14500 loss=0.5959 lr=0.00011 val IoU=0.315 rec=0.363 prec=0.704 elapsed=127.6m
 t=15000 loss=0.4707 lr=0.00008 val IoU=0.318 rec=0.369 prec=0.695 elapsed=132.0m
 t=15500 loss=0.4727 lr=0.00006 val IoU=0.322 rec=0.382 prec=0.673 elapsed=136.4m
+t=16000 loss=0.5166 lr=0.00004 val IoU=0.321 rec=0.377 prec=0.683 elapsed=140.8m
+t=16500 loss=0.5548 lr=0.00003 val IoU=0.317 rec=0.366 prec=0.700 elapsed=145.2m
+t=17000 loss=0.6814 lr=0.00003 val IoU=0.320 rec=0.376 prec=0.684 elapsed=149.6m
+FINAL val IoU 0.324 rec 0.387 prec 0.666
+using best checkpoint 0.32447023601228664
+exported
