@@ -8,3 +8,8 @@ t=2500 loss=0.6753 lr=0.00142 val IoU=0.298 rec=0.378 prec=0.583 elapsed=22.1m
 t=3000 loss=0.6365 lr=0.00139 val IoU=0.291 rec=0.342 prec=0.663 elapsed=26.6m
 t=3500 loss=0.6076 lr=0.00135 val IoU=0.283 rec=0.318 prec=0.717 elapsed=31.0m
 t=4000 loss=0.5253 lr=0.00131 val IoU=0.293 rec=0.338 prec=0.686 elapsed=35.4m
+t=4500 loss=0.5543 lr=0.00126 val IoU=0.293 rec=0.338 prec=0.685 elapsed=39.8m
+t=5000 loss=0.5975 lr=0.00121 val IoU=0.290 rec=0.331 prec=0.701 elapsed=44.2m
+t=5500 loss=0.6381 lr=0.00115 val IoU=0.307 rec=0.388 prec=0.595 elapsed=48.6m
+t=6000 loss=0.4487 lr=0.00109 val IoU=0.304 rec=0.355 prec=0.681 elapsed=53.0m
+t=6500 loss=0.5856 lr=0.00103 val IoU=0.305 rec=0.359 prec=0.671 elapsed=57.3m
