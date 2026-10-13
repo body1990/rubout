@@ -16,7 +16,7 @@ jobs:
       - run: |
           sudo apt-get update -qq; sudo apt-get install -y -qq fontconfig fonts-dejavu fonts-liberation fonts-freefont-ttf fonts-roboto fonts-open-sans fonts-lato fonts-hack fonts-inconsolata || true
           pip install -q torch --index-url https://download.pytorch.org/whl/cpu
-          pip install -q onnx onnxruntime scikit-image scikit-learn pillow
+          pip install -q onnx onnxscript onnxruntime scikit-image scikit-learn pillow
           python ci/train/prep_people.py 2>&1 | tail -3
       - name: Run notebook code
         continue-on-error: true
