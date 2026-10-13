@@ -1,0 +1,6 @@
+train (40000, 160, 160, 3) val (1000, 160, 160, 3)
+warm start
+t=500 loss=0.6148 lr=0.00150 val IoU=0.287 rec=0.373 prec=0.555 elapsed=4.1m
+t=1000 loss=0.5110 lr=0.00149 val IoU=0.282 rec=0.336 prec=0.634 elapsed=8.5m
+t=1500 loss=0.5748 lr=0.00147 val IoU=0.280 rec=0.331 prec=0.643 elapsed=13.0m
+t=2000 loss=0.5461 lr=0.00145 val IoU=0.288 rec=0.349 prec=0.623 elapsed=17.5m
