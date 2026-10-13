@@ -654,7 +654,7 @@ function makeNet() {
   var mode = 'auto', tool = 'brush', brushPx = 36, tol = 22, everywhere = false, sens = 1;
   var undoStack = [], busy = false, cancelled = false;
   var MASK_RGB = [255, 79, 134];
-  var THR = [0.6, 0.45, 0.3];
+  var THR = [0.9, 0.8, 0.65];
 
   function setChip(html) { chip.innerHTML = html; }
   function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
