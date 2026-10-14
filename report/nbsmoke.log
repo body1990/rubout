@@ -1,15 +1,62 @@
-backgrounds: 88 people photos: 170 fonts: 101
+Already up to date.
+
+backgrounds: 88 people photos: 2670 fonts: 101
 device cpu
-val torch.Size([60, 3, 128, 128]) mask fraction 0.0802663192152977
+val torch.Size([60, 3, 128, 128]) mask fraction 0.07750244438648224
 params 1558337
-step 25 loss 1.021 lr 0.00011 val IoU 0.080 @thr 0.25 (recall 1.00 precision 0.08) 1.6 min
-/tmp/nb_run.py:110: DeprecationWarning: You are using the legacy TorchScript-based ONNX export. Starting in PyTorch 2.9, the new torch.export-based ONNX exporter has become the default. Learn more about the new export logic: https://docs.pytorch.org/docs/stable/onnx_export.html. For exporting control flow: https://pytorch.org/tutorials/beginner/onnx/export_control_flow_model_to_onnx_tutorial.html
+step 25 loss 1.124 lr 0.00025 val IoU 0.084 @thr 0.50 (recall 0.24 precision 0.12) 0.1 min
+step 50 loss 1.053 lr 0.00050 val IoU 0.106 @thr 0.45 (recall 0.33 precision 0.14) 0.1 min
+step 75 loss 1.013 lr 0.00074 val IoU 0.120 @thr 0.45 (recall 0.35 precision 0.15) 0.2 min
+step 100 loss 0.995 lr 0.00098 val IoU 0.128 @thr 0.40 (recall 0.38 precision 0.16) 0.3 min
+step 125 loss 0.880 lr 0.00121 val IoU 0.119 @thr 0.45 (recall 0.36 precision 0.15) 0.3 min
+step 150 loss 0.889 lr 0.00144 val IoU 0.126 @thr 0.35 (recall 0.30 precision 0.18) 0.4 min
+step 175 loss 0.826 lr 0.00166 val IoU 0.110 @thr 0.25 (recall 0.54 precision 0.12) 0.5 min
+step 200 loss 0.891 lr 0.00186 val IoU 0.098 @thr 0.30 (recall 0.17 precision 0.19) 0.5 min
+step 225 loss 1.087 lr 0.00183 val IoU 0.117 @thr 0.50 (recall 0.29 precision 0.16) 0.6 min
+step 250 loss 0.772 lr 0.00179 val IoU 0.070 @thr 0.20 (recall 0.39 precision 0.08) 0.6 min
+step 275 loss 0.815 lr 0.00175 val IoU 0.143 @thr 0.30 (recall 0.34 precision 0.20) 0.7 min
+step 300 loss 0.915 lr 0.00171 val IoU 0.098 @thr 0.60 (recall 0.16 precision 0.20) 0.8 min
+step 325 loss 0.906 lr 0.00165 val IoU 0.129 @thr 0.50 (recall 0.31 precision 0.18) 0.8 min
+step 350 loss 0.731 lr 0.00160 val IoU 0.155 @thr 0.20 (recall 0.35 precision 0.22) 0.9 min
+step 375 loss 0.749 lr 0.00155 val IoU 0.143 @thr 0.20 (recall 0.32 precision 0.20) 1.0 min
+step 400 loss 0.614 lr 0.00150 val IoU 0.136 @thr 0.40 (recall 0.20 precision 0.29) 1.0 min
+step 425 loss 0.655 lr 0.00145 val IoU 0.126 @thr 0.20 (recall 0.22 precision 0.23) 1.1 min
+step 450 loss 0.652 lr 0.00139 val IoU 0.166 @thr 0.30 (recall 0.32 precision 0.25) 1.1 min
+step 475 loss 0.652 lr 0.00132 val IoU 0.156 @thr 0.35 (recall 0.28 precision 0.26) 1.2 min
+step 500 loss 1.118 lr 0.00126 val IoU 0.138 @thr 0.25 (recall 0.30 precision 0.21) 1.3 min
+step 525 loss 0.649 lr 0.00120 val IoU 0.162 @thr 0.35 (recall 0.32 precision 0.25) 1.3 min
+step 550 loss 0.598 lr 0.00114 val IoU 0.140 @thr 0.20 (recall 0.30 precision 0.21) 1.4 min
+step 575 loss 0.961 lr 0.00108 val IoU 0.161 @thr 0.20 (recall 0.28 precision 0.27) 1.4 min
+step 600 loss 0.574 lr 0.00101 val IoU 0.163 @thr 0.40 (recall 0.37 precision 0.23) 1.5 min
+step 625 loss 0.870 lr 0.00095 val IoU 0.160 @thr 0.25 (recall 0.30 precision 0.25) 1.6 min
+step 650 loss 0.906 lr 0.00089 val IoU 0.175 @thr 0.20 (recall 0.28 precision 0.31) 1.6 min
+step 675 loss 0.696 lr 0.00082 val IoU 0.183 @thr 0.40 (recall 0.36 precision 0.27) 1.7 min
+step 700 loss 0.795 lr 0.00075 val IoU 0.182 @thr 0.20 (recall 0.31 precision 0.30) 1.8 min
+step 725 loss 0.809 lr 0.00069 val IoU 0.174 @thr 0.20 (recall 0.31 precision 0.29) 1.8 min
+step 750 loss 0.576 lr 0.00063 val IoU 0.196 @thr 0.45 (recall 0.36 precision 0.30) 1.9 min
+step 775 loss 0.584 lr 0.00057 val IoU 0.202 @thr 0.25 (recall 0.35 precision 0.32) 2.0 min
+step 800 loss 0.577 lr 0.00051 val IoU 0.211 @thr 0.30 (recall 0.36 precision 0.33) 2.0 min
+step 825 loss 0.629 lr 0.00046 val IoU 0.188 @thr 0.25 (recall 0.34 precision 0.30) 2.1 min
+step 850 loss 0.716 lr 0.00040 val IoU 0.212 @thr 0.35 (recall 0.39 precision 0.32) 2.1 min
+step 875 loss 0.826 lr 0.00036 val IoU 0.211 @thr 0.25 (recall 0.39 precision 0.32) 2.2 min
+step 900 loss 0.592 lr 0.00031 val IoU 0.214 @thr 0.25 (recall 0.36 precision 0.34) 2.3 min
+step 925 loss 0.740 lr 0.00027 val IoU 0.224 @thr 0.35 (recall 0.37 precision 0.36) 2.3 min
+step 950 loss 0.658 lr 0.00023 val IoU 0.231 @thr 0.35 (recall 0.38 precision 0.37) 2.4 min
+step 975 loss 0.584 lr 0.00019 val IoU 0.220 @thr 0.35 (recall 0.39 precision 0.34) 2.5 min
+step 1000 loss 0.993 lr 0.00016 val IoU 0.227 @thr 0.40 (recall 0.40 precision 0.34) 2.5 min
+step 1025 loss 0.733 lr 0.00013 val IoU 0.230 @thr 0.30 (recall 0.44 precision 0.33) 2.6 min
+step 1050 loss 0.717 lr 0.00010 val IoU 0.224 @thr 0.40 (recall 0.40 precision 0.34) 2.7 min
+step 1075 loss 0.890 lr 0.00008 val IoU 0.224 @thr 0.30 (recall 0.39 precision 0.34) 2.7 min
+step 1100 loss 0.586 lr 0.00006 val IoU 0.230 @thr 0.30 (recall 0.39 precision 0.36) 2.8 min
+step 1125 loss 0.659 lr 0.00005 val IoU 0.229 @thr 0.35 (recall 0.38 precision 0.37) 2.9 min
+step 1150 loss 0.805 lr 0.00004 val IoU 0.229 @thr 0.30 (recall 0.40 precision 0.35) 2.9 min
+/tmp/nb_run.py:111: DeprecationWarning: You are using the legacy TorchScript-based ONNX export. Starting in PyTorch 2.9, the new torch.export-based ONNX exporter has become the default. Learn more about the new export logic: https://docs.pytorch.org/docs/stable/onnx_export.html. For exporting control flow: https://pytorch.org/tutorials/beginner/onnx/export_control_flow_model_to_onnx_tutorial.html
   try: torch.onnx.export(ex, dummy, 'detector.onnx', dynamo=False, **kw)
-[0;93m2026-10-13 14:13:26.995745546 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
-BEST val IoU 0.08 at threshold 0.25
-thresholds (gentle, balanced, strong): [0.25, 0.1, 0.1]
-(256, 320) onnx vs torch: max diff 2.086162567138672e-07 mean diff 3.48554749507457e-08 torch mean 0.36567503213882446 onnx mean 0.3656750023365021
-(384, 512) onnx vs torch: max diff 2.384185791015625e-07 mean diff 3.5168948642194664e-08 torch mean 0.36386990547180176 onnx mean 0.36386990547180176
+[0;93m2026-10-14 05:13:33.585914975 [W:onnxruntime:Default, device_discovery.cc:95 GetPciBusId] Skipping pci_bus_id for PCI path at "/sys/devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/5620e0c7-8062-4dce-aeb7-520c7ef76171" because filename "5620e0c7-8062-4dce-aeb7-520c7ef76171" did not match expected pattern of [0-9a-f]+:[0-9a-f]+:[0-9a-f]+[.][0-9a-f]+[m
+BEST val IoU 0.231 at threshold 0.35
+thresholds (gentle, balanced, strong): [0.875, 0.375, 0.225]
+(256, 320) onnx vs torch: max diff 4.76837158203125e-07 mean diff 4.78209578602673e-08 torch mean 0.21115748584270477 onnx mean 0.21115751564502716
+(384, 512) onnx vs torch: max diff 5.364418029785156e-07 mean diff 4.6370001172135744e-08 torch mean 0.20969457924365997 onnx mean 0.20969457924365997
 6.237071 MB
--rw-r--r-- 1 runner runner     121 Oct 13 14:13 detector.json
--rw-r--r-- 1 runner runner 6237071 Oct 13 14:13 detector.onnx
+-rw-r--r-- 1 runner runner     126 Oct 14 05:13 detector.json
+-rw-r--r-- 1 runner runner 6237071 Oct 14 05:13 detector.onnx
